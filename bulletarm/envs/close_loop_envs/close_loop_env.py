@@ -232,6 +232,7 @@ class CloseLoopEnv(BaseEnv):
       return self._isHolding(), None, obs
 
   def simulate(self, action):
+    flag = True
     p, dx, dy, dz, r = self._decodeAction(action)
     dtheta = r[2]
     # pos = list(self.robot._getEndEffectorPosition())
@@ -241,9 +242,12 @@ class CloseLoopEnv(BaseEnv):
     pos[0] += dx
     pos[1] += dy
     pos[2] += dz
+    temp1, temp2, temp3 = pos[0].copy(), pos[1].copy(), pos[2].copy()
     pos[0] = np.clip(pos[0], self.workspace[0, 0], self.workspace[0, 1])
     pos[1] = np.clip(pos[1], self.workspace[1, 0], self.workspace[1, 1])
     pos[2] = np.clip(pos[2], self.simulate_z_threshold, self.workspace[2, 1])
+    if (temp1!=pos[0]) or (temp2!=pos[1]) or (temp3!=pos[2]):
+      flag=False
     gripper_rz += dtheta
     self.simulate_pos = pos
     self.simulate_rot = [0, 0, gripper_rz]
@@ -258,7 +262,7 @@ class CloseLoopEnv(BaseEnv):
     # obs[gripper_img==1] = 0
     obs = obs.reshape([1, self.heightmap_size, self.heightmap_size])
 
-    return self._isHolding(), None, obs
+    return self._isHolding(), None, obs, flag
 
   def resetSimPose(self):
     self.simulate_pos = np.array(self.robot._getEndEffectorPosition())

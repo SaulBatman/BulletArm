@@ -132,7 +132,7 @@ class MultiRunner(object):
       remote.send(('simulate', action))
 
     obs = [remote.recv() for remote in self.remotes]
-    states, hand_obs, obs = zip(*obs)
+    states, hand_obs, obs, flag = zip(*obs)
 
     states = np.stack(states).astype(float)
     hand_obs = np.stack(hand_obs)
@@ -140,7 +140,7 @@ class MultiRunner(object):
     rewards = np.zeros_like(states).astype(np.float32)
     dones = np.zeros_like(states).astype(np.float32)
 
-    return (states, hand_obs, obs), rewards, dones
+    return (states, hand_obs, obs, flag), rewards, dones
 
   def canSimulate(self):
     for remote in self.remotes:
