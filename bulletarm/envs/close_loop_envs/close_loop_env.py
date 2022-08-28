@@ -66,6 +66,12 @@ class CloseLoopEnv(BaseEnv):
 
   def initialize(self):
     super().initialize()
+    ws_visual = pb.createVisualShape(pb.GEOM_BOX, halfExtents=[self.workspace_size / 2, self.workspace_size / 2, 0.001],
+                                     rgbaColor=[0.2, 0.2, 0.2, 1])
+    ws_id = pb.createMultiBody(baseMass=0,
+                               baseVisualShapeIndex=ws_visual,
+                               basePosition=[self.workspace[0].mean(), self.workspace[1].mean(), 0],
+                               baseOrientation=[0, 0, 0, 1])
     if self.has_tray:
       self.tray.initialize(pos=[self.workspace[0].mean(), self.workspace[1].mean(), 0],
                            size=[self.bin_size, self.bin_size, 0.1])

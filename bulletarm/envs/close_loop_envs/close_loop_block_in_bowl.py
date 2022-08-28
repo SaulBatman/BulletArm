@@ -56,3 +56,15 @@ class CloseLoopBlockInBowlEnv(CloseLoopEnv):
 
 def createCloseLoopBlockInBowlEnv(config):
   return CloseLoopBlockInBowlEnv(config)
+
+from bulletarm.planners.close_loop_block_in_bowl_planner import CloseLoopBlockInBowlPlanner
+if __name__ == '__main__':
+  env = CloseLoopBlockInBowlEnv({'seed': 0, 'workspace': np.array([[0.2, 0.6], [-0.2, 0.2], [0, 1]]), 'render': True})
+  planner = CloseLoopBlockInBowlPlanner(env, {})
+  env.reset()
+  while True:
+    action = planner.getNextAction()
+    (state, obs, in_hands), reward, done = env.step(action)
+
+    if done:
+      env.reset()

@@ -66,6 +66,7 @@ from bulletarm.envs.close_loop_envs.close_loop_household_picking import createCl
 from bulletarm.envs.close_loop_envs.close_loop_household_picking_cluttered import createCloseLoopHouseholdPickingClutteredEnv
 from bulletarm.envs.close_loop_envs.close_loop_block_pushing import createCloseLoopBlockPushingEnv
 from bulletarm.envs.close_loop_envs.close_loop_block_in_bowl import createCloseLoopBlockInBowlEnv
+from bulletarm.envs.close_loop_envs.close_loop_shoe_packing import createCloseLoopShoePackingEnv
 
 CREATE_ENV_FNS = {
   'block_picking' : createBlockPickingEnv,
@@ -129,4 +130,5 @@ CREATE_ENV_FNS = {
   'close_loop_clutter_picking': createCloseLoopHouseholdPickingClutteredEnv,
   'close_loop_block_pushing': createCloseLoopBlockPushingEnv,
   'close_loop_block_in_bowl': createCloseLoopBlockInBowlEnv,
+  'close_loop_shoe_packing': createCloseLoopShoePackingEnv,
 }
