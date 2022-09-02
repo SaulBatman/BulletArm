@@ -3,9 +3,9 @@ import numpy as np
 
 from bulletarm.envs.close_loop_envs.close_loop_env import CloseLoopEnv
 from bulletarm.pybullet.utils import constants
-from bulletarm.planners.close_loop_shoe_packing_planner import CloseLoopShoePackPlanner
+from bulletarm.planners.close_loop_kitchen_setting_planner import CloseLoopKitchenSettingPlanner
 from bulletarm.pybullet.utils.constants import NoValidPositionException
-from bulletarm.pybullet.objects.shoe_rack_short import ShoeRack
+# from bulletarm.pybullet.objects.shoe_rack_short import ShoeRack
 
 class CloseLoopKitchenSettingEnv(CloseLoopEnv):
     '''Close loop shoe packing task.
@@ -23,9 +23,12 @@ class CloseLoopKitchenSettingEnv(CloseLoopEnv):
       while True:
         self.resetPybulletWorkspace()
         try:
-          self._generateShapes(constants.KITCHEN_PLATE, 1, scale=0.5, random_orientation=self.random_orientation)
-          self._generateShapes(constants.KITCHEN_KNIFE, 1, scale=0.8, random_orientation=self.random_orientation)
-          self._generateShapes(constants.KITCHEN_FORK, 1, scale=1, random_orientation=self.random_orientation)
+          self._generateShapes(constants.KITCHEN_LOBSTER_PLATE, 1, scale=0.8, random_orientation=self.random_orientation)
+          # self._generateShapes(constants.KITCHEN_LOBSTER_PLATE, 1, scale=1, rot=[(0, 0, 0, 1)])
+          self._generateShapes(constants.KITCHEN_FORK, 1, scale=0.85, random_orientation=self.random_orientation)
+          # self._generateShapes(constants.KITCHEN_FORK, 1, scale=1, rot=[(0, 0, 0, 1)])
+          self._generateShapes(constants.KITCHEN_KNIFE, 1, scale=0.95, random_orientation=self.random_orientation)
+          # self._generateShapes(constants.KITCHEN_KNIFE, 1, scale=1, rot=[(0, 0, 0, 1)])
 
         except NoValidPositionException as e:
           continue
@@ -34,26 +37,30 @@ class CloseLoopKitchenSettingEnv(CloseLoopEnv):
       return self._getObservation()
 
     def _checkTermination(self):
+      # lobster plate size is (x = 0.160, y = 0.160, z = 0.034)
+      # plate size is (x = 0.281, y = 0.390, z = 0.042)
+      # knife size is (x = 0.108, y = 0.030, z = 0.022)
+      # fork size is (x = 0.109, y = 0.020, z = 0.021)
 
-      shoe_left_pos = self.objects[1].getPosition()
-      shoe_right_pos = self.objects[2].getPosition()
-
-      shoe_rack_pos_left = ShoeRack.getLeftPose(self.objects[0])[0]
-      shoe_rack_pos_right = ShoeRack.getRightPose(self.objects[0])[0]
-
-      stage = [0, 0]
-      finish = False
-      change = False
-      if np.linalg.norm(np.array(shoe_left_pos) - np.array(shoe_rack_pos_left)) < 0.03:
-        stage[0] = 1
-      if np.linalg.norm(np.array(shoe_right_pos) - np.array(shoe_rack_pos_right)) < 0.03:
-        stage[1] = 1
-
-      if stage[0] == 1 and stage[1] == 1 and \
-        self._checkObjUpright(self.objects[1]) and self._checkObjUpright(self.objects[2]):
-        finish = True
-        change = stage[0] and self.previous_stage[0]
-      self.previous_stage = stage
+      # shoe_left_pos = self.objects[1].getPosition()
+      # shoe_right_pos = self.objects[2].getPosition()
+      #
+      # shoe_rack_pos_left = ShoeRack.getLeftPose(self.objects[0])[0]
+      # shoe_rack_pos_right = ShoeRack.getRightPose(self.objects[0])[0]
+      #
+      # stage = [0, 0]
+      # finish = False
+      # change = False
+      # if np.linalg.norm(np.array(shoe_left_pos) - np.array(shoe_rack_pos_left)) < 0.03:
+      #   stage[0] = 1
+      # if np.linalg.norm(np.array(shoe_right_pos) - np.array(shoe_rack_pos_right)) < 0.03:
+      #   stage[1] = 1
+      #
+      # if stage[0] == 1 and stage[1] == 1 and \
+      #   self._checkObjUpright(self.objects[1]) and self._checkObjUpright(self.objects[2]):
+      #   finish = True
+      #   change = stage[0] and self.previous_stage[0]
+      # self.previous_stage = stage
 
       return False
 
@@ -77,16 +84,16 @@ def createCloseLoopKitchenSettingEnv(config):
 
 if __name__ == '__main__':
   env = CloseLoopKitchenSettingEnv({'seed': 0, 'render': True})
-  # planner = CloseLoopShoePackPlanner(env, {})
+  planner = CloseLoopKitchenSettingPlanner(env, {})
   env.reset()
   # count = 0
-  # while True:
-  #   action = planner.getNextAction()
-  #   (state, obs, in_hands), reward, done = env.step(action)
+  while True:
+    action = planner.getNextAction()
+    (state, obs, in_hands), reward, done = env.step(action)
   #   # import time
   #   # time.sleep(0.1)
-  #   if done:
+    if done:
   #     # count += 1
-  #     env.reset()
+      env.reset()
   #     # if count == 6:
   #       # print(count)

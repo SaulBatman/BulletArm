@@ -97,6 +97,35 @@
         <child>tabletop_right</child>
       </joint>
 
+      <link name="label">
+        <inertial>
+          <mass>0</mass>
+          <inertia>
+            <ixx>0</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0</iyy>
+            <iyz>0</iyz>
+            <izz>0</izz>
+          </inertia>
+        </inertial>
+        <pose>-0.07 -0.13 0.135 0 0 0</pose>
+
+        <visual>
+          <pose frame=''>0 0 0 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.025 0.025 0.025 </size>
+            </box>
+          </geometry>
+        </visual>
+
+      </link>
+
+      <joint name="base_to_label" type="fixed">
+        <parent>body</parent>
+        <child>label</child>
+      </joint>
 
     </model>
   </world>

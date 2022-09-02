@@ -56,10 +56,10 @@ class KitchenPlate(PybulletObject):
   def __init__(self, pos, rot, scale):
     self.scale = scale
     root_dir = os.path.dirname(bulletarm.__file__)
-    urdf_filepath = os.path.join(root_dir, constants.OBJECTS_PATH, 'kitchen_set/plate/plate.urdf')
+    urdf_filepath = os.path.join(root_dir, constants.OBJECTS_PATH, 'kitchen_set/lobster_plate/lobster_plate.urdf')
     object_id = pb.loadURDF(urdf_filepath, basePosition=pos, baseOrientation=rot, globalScaling=scale)
 
-    super(KitchenPlate, self).__init__(constants.KITCHEN_PLATE, object_id)
+    super(KitchenPlate, self).__init__(constants.KITCHEN_LOBSTER_PLATE, object_id)
 
   def getGraspRotation(self):
     link_state = pb.getLinkState(self.object_id, 0)
