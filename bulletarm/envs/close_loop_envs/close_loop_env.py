@@ -64,6 +64,8 @@ class CloseLoopEnv(BaseEnv):
     self.simulate_pos = None
     self.simulate_rot = None
 
+    # self.cloud = None
+
   def initialize(self):
     super().initialize()
     ws_visual = pb.createVisualShape(pb.GEOM_BOX, halfExtents=[self.workspace_size / 2, self.workspace_size / 2, 0.001],
@@ -466,3 +468,6 @@ class CloseLoopEnv(BaseEnv):
       self.wait(100)
       return super()._checkStack(objects)
     return False
+
+  def getPointCloud(self):
+    return self.renderer.points

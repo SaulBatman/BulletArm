@@ -52,6 +52,8 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
       elif cmd == 'reset':
         obs = env.reset()
         remote.send(obs)
+      elif cmd == 'getPointCloud':
+        remote.send(env.getPointCloud())
       elif cmd == 'get_spaces':
         remote.send((env.obs_shape, env.action_space, env.action_shape))
       elif cmd == 'get_empty_in_hand':
@@ -152,6 +154,15 @@ class MultiRunner(object):
   def resetSimPose(self):
     for remote in self.remotes:
       remote.send(('reset_sim', None))
+
+  def getPointCloud(self):
+    for remote in self.remotes:
+      remote.send(('getPointCloud'))
+
+    clouds = [remote.recv() for remote in self.remotes]
+    clouds = np.stack(clouds)
+
+    return clouds
 
   def stepAsync(self, actions, auto_reset=False):
     '''

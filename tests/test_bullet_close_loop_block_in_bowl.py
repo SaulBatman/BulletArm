@@ -33,6 +33,8 @@ class TestBulletCloseLoopBlockInBowl(unittest.TestCase):
       # plt.show()
 
       (states_, in_hands_, obs_), rewards, dones = env.step(action, auto_reset=True)
+      if dones:
+        print(1)
       # plt.imshow(obs_[0, 0], vmin=0, vmax=0.25)
       # plt.show()
       obs = obs_
@@ -48,3 +50,5 @@ class TestBulletCloseLoopBlockInBowl(unittest.TestCase):
       )
     env.close()
 
+if __name__ == "__main__":
+  TestBulletCloseLoopBlockInBowl().testPlanner2()
