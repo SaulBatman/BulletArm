@@ -24,6 +24,7 @@ class TestBulletCloseLoopBlockInBowl(unittest.TestCase):
     pbar = tqdm(total=100)
     while total < 100:
       t0 = time.time()
+      points = env.getPointCloud()
       action = env.getNextAction()
       t_plan = time.time() - t0
       # plt.imshow(obs[0, 0])

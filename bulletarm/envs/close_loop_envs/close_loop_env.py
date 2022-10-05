@@ -471,4 +471,5 @@ class CloseLoopEnv(BaseEnv):
     return False
 
   def getPointCloud(self):
+    self.renderer.getNewPointCloud()
     return self.renderer.points

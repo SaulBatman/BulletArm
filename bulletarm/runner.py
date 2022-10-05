@@ -157,7 +157,7 @@ class MultiRunner(object):
 
   def getPointCloud(self):
     for remote in self.remotes:
-      remote.send(('getPointCloud'))
+      remote.send(('getPointCloud', None))
 
     clouds = [remote.recv() for remote in self.remotes]
     clouds = np.stack(clouds)
