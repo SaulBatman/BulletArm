@@ -302,7 +302,8 @@ class CloseLoopEnv(BaseEnv):
   def _getHeightmap(self, gripper_pos=None, gripper_rz=None):
     gripper_z_offset = 0.04 # panda
     if self.robot_type == 'kuka':
-      gripper_z_offset = 0.12
+      # gripper_z_offset = 0.12
+      gripper_z_offset = 0 # for visualization
     elif self.robot_type == 'ur5':
       gripper_z_offset = 0.06
     if gripper_pos is None:

@@ -77,18 +77,19 @@ class CloseLoopShoePacking(CloseLoopEnv):
 def createCloseLoopShoePackingEnv(config):
   return CloseLoopShoePacking(config)
 
-# if __name__ == '__main__':
-#   env = CloseLoopShoePacking({'seed': 2, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0, 1]]), 'render': True})
-#   planner = CloseLoopShoePackingPlanner(env, {})
-#   env.reset()
-#   # count = 0
-#   while True:
-#     action = planner.getNextAction()
-#     (state, _, obs), reward, done = env.step(action)
-#     # import time
-#     # time.sleep(0.1)
-#     if done:
-#       # count += 1
-#       env.reset()
-#       # if count == 6:
-#         # print(count)
+if __name__ == '__main__':
+  env = CloseLoopShoePacking({'seed': 1, 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  planner = CloseLoopShoePackingPlanner(env, {})
+  _, _, obs = env.reset()
+  # count = 0
+  while True:
+    action = planner.getNextAction()
+    (state, _, obs), reward, done = env.step(action)
+    # import time
+    # time.sleep(0.1)
+    if done:
+      print(1)
+      # count += 1
+      # env.reset()
+      # if count == 6:
+        # print(count)

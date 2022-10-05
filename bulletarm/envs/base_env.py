@@ -85,13 +85,38 @@ class BaseEnv:
     # Connect to pybullet and add data files to path
     if config['render']:
       self.client = pb.connect(pb.GUI)
-      # For screenshotting envs
+
+      # # # For screenshotting envs, start
       # pb.configureDebugVisualizer(pb.COV_ENABLE_GUI, 0)
       # pb.resetDebugVisualizerCamera(
-      #     cameraDistance=1.1,
+      #     cameraDistance=0.6,
       #     cameraYaw=90,
-      #     cameraPitch=-40,
-      #     cameraTargetPosition=[0, 0, 0])
+      #     cameraPitch=-30,
+      #     cameraTargetPosition=[0.22, 0, 0])
+
+      # For screenshotting envs, goal
+      # pb.configureDebugVisualizer(pb.COV_ENABLE_GUI, 0)
+      # pb.resetDebugVisualizerCamera(
+      #     cameraDistance=0.4,
+      #     cameraYaw=61,
+      #     cameraPitch=-50,
+      #     cameraTargetPosition=[0.45, 0, 0])
+
+      # # For screenshotting envs, ICRA start
+      # pb.configureDebugVisualizer(pb.COV_ENABLE_GUI, 0)
+      # pb.resetDebugVisualizerCamera(
+      #     cameraDistance=0.6,
+      #     cameraYaw=55,
+      #     cameraPitch=-24,
+      #     cameraTargetPosition=[0.22, 0, 0.2])
+
+      # # # For screenshotting envs, ICRA goal
+      pb.configureDebugVisualizer(pb.COV_ENABLE_GUI, 0)
+      pb.resetDebugVisualizerCamera(
+          cameraDistance=1.4,
+          cameraYaw=55,
+          cameraPitch=-24,
+          cameraTargetPosition=[0.4, 0, 0.1])
     else:
       self.client = pb.connect(pb.DIRECT)
     pb.setAdditionalSearchPath(pybullet_data.getDataPath())

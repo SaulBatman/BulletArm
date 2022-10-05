@@ -45,3 +45,16 @@ class CloseLoopBlockStackingEnv(CloseLoopEnv):
 
 def createCloseLoopBlockStackingEnv(config):
   return CloseLoopBlockStackingEnv(config)
+
+
+from bulletarm.planners.close_loop_block_stacking_planner import CloseLoopBlockStackingPlanner
+if __name__ == '__main__':
+  env = CloseLoopBlockStackingEnv({'seed': 1, 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  planner = CloseLoopBlockStackingPlanner(env, {})
+  _, _, obs = env.reset()
+  while True:
+    action = planner.getNextAction()
+    (state, obs, in_hands), reward, done = env.step(action)
+
+    # if done:
+    #   env.reset()
