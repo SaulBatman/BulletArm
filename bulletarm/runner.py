@@ -54,6 +54,8 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
         remote.send(obs)
       elif cmd == 'getPointCloud':
         remote.send(env.getPointCloud())
+      elif cmd == 'getEndEffectorPose':
+        remote.send(env.getEndEffectorPose())
       elif cmd == 'get_spaces':
         remote.send((env.obs_shape, env.action_space, env.action_shape))
       elif cmd == 'get_empty_in_hand':
@@ -159,10 +161,19 @@ class MultiRunner(object):
     for remote in self.remotes:
       remote.send(('getPointCloud', None))
 
-    clouds = [remote.recv() for remote in self.remotes]
-    clouds = np.stack(clouds)
+    clouds = np.array([remote.recv() for remote in self.remotes], dtype=object)
+
 
     return clouds
+
+  def getEndEffectorPose(self):
+    for remote in self.remotes:
+      remote.send(('getEndEffectorPose', None))
+
+    pos = [remote.recv() for remote in self.remotes]
+    pos = np.stack(pos)
+
+    return pos
 
   def stepAsync(self, actions, auto_reset=False):
     '''

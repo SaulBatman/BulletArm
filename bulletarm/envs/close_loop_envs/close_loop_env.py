@@ -473,3 +473,10 @@ class CloseLoopEnv(BaseEnv):
   def getPointCloud(self):
     self.renderer.getNewPointCloud()
     return self.renderer.points
+
+  def getEndEffectorPose(self):
+    # get 4Dof pose: x, y, z, theta
+    pos = self.robot._getEndEffectorPosition()
+    rot = transformations.euler_from_quaternion(self.robot._getEndEffectorRotation())
+    
+    return np.append(pos, rot[2]) 

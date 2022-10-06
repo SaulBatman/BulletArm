@@ -15,7 +15,7 @@ class TestBulletCloseLoopBlockInBowl(unittest.TestCase):
   def testPlanner2(self):
     self.env_config['render'] = True
     self.env_config['seed'] = 0
-    num_processes = 1
+    num_processes = 5
     env = env_factory.createEnvs(num_processes, 'close_loop_block_in_bowl', self.env_config, self.planner_config)
     total = 0
     s = 0
@@ -34,7 +34,7 @@ class TestBulletCloseLoopBlockInBowl(unittest.TestCase):
       # plt.show()
 
       (states_, in_hands_, obs_), rewards, dones = env.step(action, auto_reset=True)
-      if dones:
+      if dones.all():
         print(1)
       # plt.imshow(obs_[0, 0], vmin=0, vmax=0.25)
       # plt.show()
