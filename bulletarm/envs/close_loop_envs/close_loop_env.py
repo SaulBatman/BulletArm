@@ -295,17 +295,24 @@ class CloseLoopEnv(BaseEnv):
     else:
       raise NotImplementedError
     d = int(gripper_max_open/128*self.heightmap_size * gripper_state)
-    anchor = self.heightmap_size//2
-    im[int(anchor - d // 2 - gripper_half_size):int(anchor - d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
-    im[int(anchor + d // 2 - gripper_half_size):int(anchor + d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
+    square_gripper = False
+    if square_gripper:
+      anchor = self.heightmap_size//2
+      im[int(anchor - d // 2 - gripper_half_size):int(anchor - d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
+      im[int(anchor + d // 2 - gripper_half_size):int(anchor + d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
+    else:
+      l = int(0.02/self.obs_size_m * self.heightmap_size/2)*2
+      w = int(0.015/self.obs_size_m * self.heightmap_size/2)*2
+      im[self.heightmap_size//2-d//2-w:self.heightmap_size//2-d//2+w, self.heightmap_size//2-l:self.heightmap_size//2+l] = 1
+      im[self.heightmap_size//2+d//2-w:self.heightmap_size//2+d//2+w, self.heightmap_size//2-l:self.heightmap_size//2+l] = 1
     im = rotate(im, np.rad2deg(gripper_rz), reshape=False, order=0)
     return im
 
   def _getHeightmap(self, gripper_pos=None, gripper_rz=None):
     gripper_z_offset = 0.04 # panda
     if self.robot_type == 'kuka':
-      # gripper_z_offset = 0.12
-      gripper_z_offset = 0 # for visualization
+      gripper_z_offset = 0.12
+      # gripper_z_offset = 0 # for visualization
     elif self.robot_type == 'ur5':
       gripper_z_offset = 0.06
     if gripper_pos is None:
@@ -476,7 +483,9 @@ class CloseLoopEnv(BaseEnv):
 
   def getEndEffectorPose(self):
     # get 4Dof pose: x, y, z, theta
+    gripper_width = self.robot.getGripperOpenRatio()
     pos = self.robot._getEndEffectorPosition()
     rot = transformations.euler_from_quaternion(self.robot._getEndEffectorRotation())
+    transform = np.append(pos, rot[2])
     
-    return np.append(pos, rot[2]) 
+    return np.append(gripper_width, transform) # [p, x, y, z, theta]
