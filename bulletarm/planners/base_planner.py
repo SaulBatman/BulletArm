@@ -25,6 +25,9 @@ class BasePlanner(object):
   def getStepsLeft(self):
     raise NotImplemented('Planners must implement this function')
 
+  def getNextTemporal(self):
+    raise NotImplemented('Planners must implement this function')
+
   def getValue(self):
     return self.gamma**self.getStepsLeft()
 
@@ -155,3 +158,4 @@ class BasePlanner(object):
 
   def getHoldingObjType(self):
     return self.env._getHoldingObjType()
+    

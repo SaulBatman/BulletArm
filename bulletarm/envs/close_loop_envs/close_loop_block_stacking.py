@@ -7,6 +7,8 @@ from bulletarm.pybullet.utils import transformations
 from bulletarm.planners.close_loop_block_stacking_planner import CloseLoopBlockStackingPlanner
 from bulletarm.pybullet.utils.constants import NoValidPositionException
 
+import matplotlib.pyplot as plt
+
 class CloseLoopBlockStackingEnv(CloseLoopEnv):
   '''Close loop block stacking task.
 
@@ -43,18 +45,38 @@ class CloseLoopBlockStackingEnv(CloseLoopEnv):
   def _checkTermination(self):
     return not self._isHolding() and self._checkStack(self.objects)
 
+  
+
 def createCloseLoopBlockStackingEnv(config):
   return CloseLoopBlockStackingEnv(config)
 
 
+
+
 from bulletarm.planners.close_loop_block_stacking_planner import CloseLoopBlockStackingPlanner
 if __name__ == '__main__':
-  env = CloseLoopBlockStackingEnv({'seed': 1, 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  env = CloseLoopBlockStackingEnv({'seed': 1, 'num_objects': 3, 'view_type': 'camera_center_xyz_height', 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
   planner = CloseLoopBlockStackingPlanner(env, {})
   _, _, obs = env.reset()
+  step_num = 0
   while True:
     action = planner.getNextAction()
+    # global_obs, goal_obs, goal_bbox, all_bbox = planner.getNextGoal()
+    step_num += 1
+    global_obs, goal_bbox, all_bbox = planner.getNextTemporal()
+    if global_obs is not None:
+      plt.imshow(global_obs[-1][0])
+    print(global_obs)
+    # plt.figure(1)
+    # plt.imshow(goal_obs)
+    # plt.figure(2)
+    # plt.imshow(global_obs)
     (state, obs, in_hands), reward, done = env.step(action)
-
+    # obs1, obs2, obs3 = planner.obscrop(global_obs, all_bbox)
+    # fig, axs = plt.subplots(1, 3, figsize=(9, 3))
+    # axs[0].imshow(obs1)
+    # axs[1].imshow(obs2)
+    # axs[2].imshow(obs3)
+    # print(1)
     # if done:
     #   env.reset()

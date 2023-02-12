@@ -67,6 +67,16 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
           remote.send(planner.getNextAction())
         else:
           raise ValueError('Attempting to use a planner which was not initialized.')
+      elif cmd == 'get_next_goal':
+        if planner:
+          remote.send(planner.getNextGoal())
+        else:
+          raise ValueError('Attempting to use a planner which was not initialized.')
+      elif cmd == 'get_next_temporal':
+        if planner:
+          remote.send(planner.getNextTemporal())
+        else:
+          raise ValueError('Attempting to use a planner which was not initialized.')  
       elif cmd == 'get_num_obj':
         remote.send(env.num_obj)
       elif cmd == 'save':
@@ -220,6 +230,46 @@ class MultiRunner(object):
       return (states, hand_obs, obs), rewards, dones, metadata
     else:
       return (states, hand_obs, obs), rewards, dones
+
+  def getNextGoal(self):
+      '''
+      Get the next action from the planner for each environment.
+
+      Returns:
+        numpy.array: Actions
+      '''
+      results = [remote.recv() for remote in self.remotes]
+
+      res = tuple(zip(*results))
+      global_obs, goal_obs, goal_bbox, all_bbox = res
+
+      global_obs = np.stack(global_obs)
+      goal_obs = np.stack(goal_obs)
+      goal_bbox = np.stack(goal_bbox)
+      all_bbox = np.stack(all_bbox)
+
+
+      return global_obs, goal_obs, goal_bbox, all_bbox
+
+  def getNextTemporal(self):
+      '''
+      Get the next temporal data from the planner for each environment.
+
+      Returns:
+        numpy.array: Actions
+      '''
+      for remote in self.remotes:
+        remote.send(('get_next_temporal', None))        
+      results = [remote.recv() for remote in self.remotes]
+      res = tuple(zip(*results))
+      global_obss, goal_bboxes, all_bboxes = res
+
+      global_obss = np.stack(global_obss)
+      goal_bboxes = np.stack(goal_bboxes)
+      all_bboxes = np.stack(all_bboxes)
+
+
+      return global_obss, goal_bboxes, all_bboxes
 
   def reset(self):
     '''

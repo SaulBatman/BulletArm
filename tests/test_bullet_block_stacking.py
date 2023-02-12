@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from bulletarm import env_factory
 
 class TestBulletBlockStacking(unittest.TestCase):
-  env_config = {'num_objects': 4}
+  env_config = {'num_objects': 2, 'seed': 1, 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True}
 
   planner_config = {'random_orientation': True}
 
@@ -27,12 +27,12 @@ class TestBulletBlockStacking(unittest.TestCase):
   def testPlanner2(self):
     self.env_config['render'] = False
     self.env_config['seed'] = 0
-    num_processes = 20
+    num_processes = 3
     env = env_factory.createEnvs(num_processes,  'block_stacking', self.env_config, self.planner_config)
     total = 0
     s = 0
     step_times = []
-    env.reset()
+    (states, hand_obs, obs) = env.reset()
     pbar = tqdm(total=500)
     while total < 500:
       t0 = time.time()
@@ -52,3 +52,5 @@ class TestBulletBlockStacking(unittest.TestCase):
       pbar.update(dones.sum())
     env.close()
 
+if __name__ == "__main__":
+  TestBulletBlockStacking().testPlanner2()

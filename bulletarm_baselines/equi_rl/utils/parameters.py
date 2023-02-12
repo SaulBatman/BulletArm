@@ -23,6 +23,8 @@ env_group.add_argument('--workspace_size', type=float, default=0.3, help='Size o
 env_group.add_argument('--heightmap_size', type=int, default=128, help='Size of the heightmap in pixels')
 env_group.add_argument('--view_type', type=str, default='camera_center_xyz')
 env_group.add_argument('--obs_type', type=str, default='pixel')
+env_group.add_argument('--object_bbox', type=strToBool, default=False)
+env_group.add_argument('--time_horizon', type=int, default=10)
 
 training_group = parser.add_argument_group('training')
 training_group.add_argument('--algorithm', default='equi_sacfd', choices=['sac', 'sacfd', 'equi_sac', 'equi_sacfd',
@@ -93,7 +95,8 @@ num_processes = args.num_processes
 num_eval_processes = args.num_eval_processes
 render = args.render
 robot = args.robot
-
+object_bbox = args.object_bbox
+time_horizon = args.time_horizon
 
 workspace_size = args.workspace_size
 workspace = np.asarray([[0.45-workspace_size/2, 0.45+workspace_size/2],

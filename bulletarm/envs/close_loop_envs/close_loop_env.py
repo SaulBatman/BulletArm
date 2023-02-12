@@ -64,6 +64,7 @@ class CloseLoopEnv(BaseEnv):
     self.simulate_pos = None
     self.simulate_rot = None
 
+    self.time_horizon = config['time_horizon']
     # self.cloud = None
 
   def initialize(self):
