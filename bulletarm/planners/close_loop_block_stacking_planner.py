@@ -23,6 +23,9 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
     self.global_obs_q = None
     self.goal_bbox_q = None
     self.all_bbox_q = None
+    self.in_hand = None
+    self.in_hand_q = None
+    self.ee_pos_q = None
     # self.all_obs = None # (N, x1, y1, x2, y2)
 
 
@@ -150,12 +153,19 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
     object_poses = self.env.getObjectPoses(self.env.objects)
     return self.space2img(object_poses[:,:2])
 
+  def getAllAnchorsWorld(self):
+    # (N, x, y) in global_obs image space
+    object_poses = self.env.getObjectPoses(self.env.objects)
+    gripper_pos = self.env.robot._getEndEffectorPosition().reshape(1,3)
+    poses = np.concatenate([object_poses[:,:3], gripper_pos], axis=0)
+    return poses
+
   def centercrop(self, img, size=14):
     # crop around center
     img_x, img_y = img.shape
     return img[img_x//2-size:img_x//2+size, img_y//2-size:img_y//2+size]
 
-  def getbbox(self, anchor, half_size=14):
+  def getbbox(self, anchor, half_size=6):
     if len(anchor.shape) == 1:
       # (x1, y1, x2, y2)
       return np.array([anchor[0]-half_size, anchor[1]-half_size, anchor[0]+half_size, anchor[1]+half_size])
@@ -200,59 +210,104 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
 
   def getNextGoal(self):
     # print(self.target_obj)
+    half_size = 10
     if self.target_obj is None:
-      object_x, object_y = self.last_target_obj.getPosition()[:2]
+      object_x, object_y, object_z = self.last_target_obj.getPosition()[:3]
     else:
-      object_x, object_y = self.target_obj.getPosition()[:2]
+      object_x, object_y, object_z = self.target_obj.getPosition()[:3]
     ee_x, ee_y, ee_z = self.env.robot._getEndEffectorPosition()
     # object_rot = list(transformations.euler_from_quaternion(self.target_obj.getRotation()))
     # gripper_rz = transformations.euler_from_quaternion(self.env.robot._getEndEffectorRotation())[2]
-    self.goal_obs = self.centercrop(self.env._getHeightmap(gripper_pos=[object_x, object_y, ee_z], gripper_rz=None))
-    self.global_obs = self.env._getHeightmap(gripper_pos=[self.env.workspace[0].mean(), self.env.workspace[1].mean(), 0.2], gripper_rz=None).reshape(1,128,128)
+    # self.goal_obs = self.centercrop(self.env._getHeightmap(gripper_pos=[object_x, object_y, ee_z], gripper_rz=None))
+    # self.global_obs = self.env._getHeightmap(gripper_pos=[self.env.workspace[0].mean(), self.env.workspace[1].mean(), 0.2], gripper_rz=None).reshape(1,128,128)
+    _, self.in_hand, self.global_obs = self.env._getObservation()
+    ee_rot = transformations.euler_from_quaternion(self.env.robot._getEndEffectorRotation())
     # print(object_x, object_y)
     self.last_target_obj = self.target_obj if self.target_obj is not None else self.last_target_obj
     # get goal anchor and obs
-    goal_img_xy = self.space2img(np.array([object_x, object_y]))
-    goal_bbox = self.getbbox(goal_img_xy) # bounding box (x1, y1, x2, y2) 
+    if self.env.view_type.find('side') == -1:
+      goal_img_xy = self.space2img(np.array([object_x, object_y, object_z]).reshape(1, -1))
+      goal_bbox = self.getbbox(goal_img_xy) # bounding box (x1, y1, x2, y2) 
+      anchors = self.getAllAnchors()
+    else:
+      # self.env.sensor.getPointCloud(128)
+      goal_img_xy = self.env.sensor.world2cam(np.array([object_x, object_y, object_z]).reshape(1, -1))
+      goal_bbox = self.getbbox(goal_img_xy, half_size=half_size) # bounding box (x1, y1, x2, y2) 
+      anchors = self.getAllAnchorsWorld()
+      anchors = self.env.sensor.world2cam(anchors)
     # get all anchors and obs
-    anchors = self.getAllAnchors()
-    all_bbox = self.getbbox(anchors)
-    return self.global_obs, self.goal_obs, goal_bbox, all_bbox
+    
+    all_bbox = self.getbbox(anchors, half_size=half_size)
+    joint_angles = self.env.getJointAngles()
+    ee_pos = np.array([ee_x, ee_y, ee_z, *ee_rot, *joint_angles])
+    return self.global_obs, self.in_hand, goal_bbox, all_bbox, ee_pos
 
   def initQ(self, time_horizon):
     self.global_obs_q = queue.Queue(time_horizon)
     self.goal_bbox_q = queue.Queue(time_horizon)
     self.all_bbox_q = queue.Queue(time_horizon)
+    self.in_hand_q = queue.Queue(time_horizon)
+    self.ee_pos_q = queue.Queue(time_horizon)
 
-  def insertQ(self, global_obs, goal_bbox, all_bbox):
+  def insertQ(self, global_obs, in_hand, goal_bbox, all_bbox, ee_pos):
     if self.global_obs_q.full():
       self.global_obs_q.get()
       self.goal_bbox_q.get()
       self.all_bbox_q.get()
+      self.in_hand_q.get()
+      self.ee_pos_q.get()
       self.global_obs_q.put(global_obs)
       self.goal_bbox_q.put(goal_bbox)
       self.all_bbox_q.put(all_bbox)
+      self.in_hand_q.put(in_hand)
+      self.ee_pos_q.put(ee_pos)
     else:
       self.global_obs_q.put(global_obs)
       self.goal_bbox_q.put(goal_bbox)
       self.all_bbox_q.put(all_bbox)
+      self.in_hand_q.put(in_hand)
+      self.ee_pos_q.put(ee_pos)
 
   def Q2Array(self, Q):
     return np.stack(list(Q.queue))
 
-  def getNextTemporal(self):
-    # global_obs is (c, 128, 128)
-    global_obs, _, goal_bbox, all_bbox = self.getNextGoal()
-    if not self.init_q:
-      self.init_q = True
-      self.initQ(self.time_horizon)
-      self.insertQ(global_obs, goal_bbox, all_bbox)
-    else:
-      self.insertQ(global_obs, goal_bbox, all_bbox)
-    if self.global_obs_q.full():
-      return self.Q2Array(self.global_obs_q), self.Q2Array(self.goal_bbox_q), self.Q2Array(self.all_bbox_q)
-    else:
-      return None, None, None
+  def populateQ(self, global_obs, in_hand, goal_bbox, all_bbox, ee_pos):
+    while not self.global_obs_q.full():
+      self.global_obs_q.put(global_obs)
+      self.in_hand_q.put(in_hand)
+      self.goal_bbox_q.put(goal_bbox)
+      self.all_bbox_q.put(all_bbox)
+      self.ee_pos_q.put(ee_pos)
+    
+
+  def getObsTemporal(self, done):
+      # global_obs is (c, 128, 128)
+      global_obs, in_hand, goal_bbox, all_bbox, ee_pos = self.getNextGoal()
+      if not self.init_q:
+        self.init_q = True
+        self.initQ(self.time_horizon)
+        self.populateQ(global_obs, in_hand, goal_bbox, all_bbox, ee_pos)
+      else:
+        if done:
+          self.init_q = False
+          return self.Q2Array(self.global_obs_q), self.Q2Array(self.in_hand_q), self.Q2Array(self.goal_bbox_q), self.Q2Array(self.all_bbox_q), self.Q2Array(self.ee_pos_q)
+        self.insertQ(global_obs, in_hand, goal_bbox, all_bbox, ee_pos)
+      
+      return self.Q2Array(self.global_obs_q), self.Q2Array(self.in_hand_q), self.Q2Array(self.goal_bbox_q), self.Q2Array(self.all_bbox_q), self.Q2Array(self.ee_pos_q)
+
+  # def getObsTemporal(self):
+  #   # global_obs is (c, 128, 128)
+  #   global_obs, _, goal_bbox, all_bbox = self.getNextGoal()
+  #   if not self.init_q:
+  #     self.init_q = True
+  #     self.initQ(self.time_horizon)
+  #     self.insertQ(global_obs, goal_bbox, all_bbox)
+  #   else:
+  #     self.insertQ(global_obs, goal_bbox, all_bbox)
+  #   if self.global_obs_q.full():
+  #     return self.Q2Array(self.global_obs_q), self.Q2Array(self.goal_bbox_q), self.Q2Array(self.all_bbox_q)
+  #   else:
+  #     return None, None, None
 
 
 

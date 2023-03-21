@@ -49,6 +49,19 @@ class Sensor(object):
     depth = self.far * self.near / (self.far - (self.far - self.near) * depth_img)
     return depth.reshape(size, size)
 
+  def world2cam(self, points):
+    assert len(points.shape) == 2
+    projectionMatrix = np.asarray(self.proj_matrix).reshape([4,4],order='F')
+    viewMatrix = np.asarray(self.view_matrix).reshape([4,4],order='F')
+    tran_world_pix = np.matmul(projectionMatrix, viewMatrix)
+    augment = np.ones((points.shape[0], 1))
+    points = np.concatenate((points, augment), axis=1)
+    pixel_pos = np.matmul(tran_world_pix, points.T).T # returns N*4
+    pixel_pos = (pixel_pos/pixel_pos[:, -1, None]+1)/2*128
+    pixel_pos[:,1] = 128 - pixel_pos[:,1]
+    # pixel_pos[:, [1, 0]] = pixel_pos[:, [0, 1]]
+    return pixel_pos[:,:2].astype(int) # N*xy
+
   def getPointCloud(self, size, to_numpy=True):
     image_arr = pb.getCameraImage(width=size, height=size,
                                   viewMatrix=self.view_matrix,

@@ -74,7 +74,7 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
           raise ValueError('Attempting to use a planner which was not initialized.')
       elif cmd == 'get_next_temporal':
         if planner:
-          remote.send(planner.getNextTemporal())
+          remote.send(planner.getObsTemporal(data))
         else:
           raise ValueError('Attempting to use a planner which was not initialized.')  
       elif cmd == 'get_num_obj':
@@ -241,35 +241,38 @@ class MultiRunner(object):
       results = [remote.recv() for remote in self.remotes]
 
       res = tuple(zip(*results))
-      global_obs, goal_obs, goal_bbox, all_bbox = res
+      global_obs, in_hand, goal_bbox, all_bbox, ee_pos = res
 
       global_obs = np.stack(global_obs)
-      goal_obs = np.stack(goal_obs)
+      in_hands = np.stack(in_hand)
       goal_bbox = np.stack(goal_bbox)
       all_bbox = np.stack(all_bbox)
+      ee_pos = np.stack(ee_pos)
 
 
-      return global_obs, goal_obs, goal_bbox, all_bbox
+      return global_obs, in_hands, goal_bbox, all_bbox, ee_pos
 
-  def getNextTemporal(self):
+  def getObsTemporal(self, dones):
       '''
       Get the next temporal data from the planner for each environment.
 
       Returns:
         numpy.array: Actions
       '''
-      for remote in self.remotes:
-        remote.send(('get_next_temporal', None))        
+      for remote, done in zip(self.remotes, dones):
+        remote.send(('get_next_temporal', done))    
       results = [remote.recv() for remote in self.remotes]
       res = tuple(zip(*results))
-      global_obss, goal_bboxes, all_bboxes = res
+      global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss = res
 
       global_obss = np.stack(global_obss)
+      in_hands = np.stack(in_hands)
       goal_bboxes = np.stack(goal_bboxes)
       all_bboxes = np.stack(all_bboxes)
+      ee_poss = np.stack(ee_poss)
 
 
-      return global_obss, goal_bboxes, all_bboxes
+      return global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss
 
   def reset(self):
     '''

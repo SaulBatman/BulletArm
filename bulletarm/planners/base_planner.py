@@ -25,7 +25,7 @@ class BasePlanner(object):
   def getStepsLeft(self):
     raise NotImplemented('Planners must implement this function')
 
-  def getNextTemporal(self):
+  def getObsTemporal(self):
     raise NotImplemented('Planners must implement this function')
 
   def getValue(self):

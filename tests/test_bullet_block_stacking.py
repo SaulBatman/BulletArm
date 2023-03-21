@@ -29,6 +29,7 @@ class TestBulletBlockStacking(unittest.TestCase):
     self.env_config['seed'] = 0
     num_processes = 3
     env = env_factory.createEnvs(num_processes,  'block_stacking', self.env_config, self.planner_config)
+    # planner = CloseLoopBlockStackingPlanner(env, {})
     total = 0
     s = 0
     step_times = []
@@ -39,6 +40,7 @@ class TestBulletBlockStacking(unittest.TestCase):
       action = env.getNextAction()
       t_plan = time.time() - t0
       (states_, in_hands_, obs_), rewards, dones = env.step(action, auto_reset=True)
+      global_obs, in_hand, goal_bbox, all_bbox = env.getObsTemporal(dones)
       s += rewards.sum()
       total += dones.sum()
       t_action = time.time() - t0 - t_plan
