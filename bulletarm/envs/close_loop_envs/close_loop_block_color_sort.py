@@ -20,9 +20,23 @@ class CloseLoopBlockColorSortEnv(CloseLoopEnv):
     # env specific parameters
     super().__init__(config)
     self.bin_num = config['bin_num']
+    self.bin_dist = config['bin_dist']
     self.goal_pos_cube = None
     self.goal_pos_tri = None
     # self.workspace_size = self.workspace[0,1]-self.workspace[0,0]
+
+    if self.bin_num > 0:
+      bins = np.arange(0,255,255/self.bin_num)
+      bins_end = np.arange(0,255,255/self.bin_num) + 255/self.bin_num
+      self.ranges = np.stack((bins,bins_end),axis=0).transpose(1,0)
+
+      even_num = [2*i for i in range(self.bin_num//2)]
+      odd_num = [2*i+1 for i in range(self.bin_num//2)]
+      self.left_range = self.ranges[even_num]
+      self.right_range = self.ranges[odd_num]
+
+
+
 
 
   def createMat(self):
@@ -51,12 +65,38 @@ class CloseLoopBlockColorSortEnv(CloseLoopEnv):
       left_gray = (np.random.random()*255/bin_num+left_gray)/255
       right_gray = bins[odd_idx]
       right_gray = (np.random.random()*255/bin_num+right_gray)/255
-    elif dist == 'gaussian':
+    elif dist == 'gaussian_incorrect':
       sigma = 1/bin_num*1.5
       left_gray = bins[even_idx]/255
       right_gray = bins[odd_idx]/255
       left_gray = np.clip(np.random.normal(left_gray, sigma), 0, 1)
       right_gray = np.clip(np.random.normal(right_gray, sigma), 0, 1)
+    elif dist == 'gaussian_clip':
+      sigma = 1/bin_num*1.5
+      left_gray = bins[even_idx]/255+255/bin_num/2
+      right_gray = bins[odd_idx]/255+255/bin_num/2
+      left_gray = left_gray + np.clip(np.random.normal(0, sigma), -255/bin_num/2, 255/bin_num/2)
+      right_gray = right_gray + np.clip(np.random.normal(0, sigma), -255/bin_num/2, 255/bin_num/2)
+
+      left_gray = np.clip(left_gray, 0, 1)
+      right_gray = np.clip(right_gray, 0, 1)
+    elif dist == 'gaussian_entire':
+      sigma = 255/2*0.8
+      left_gray = None
+      right_gray = None
+
+      while (left_gray == None) or (right_gray == None):
+        samp = np.random.normal(255/2, sigma)
+        for count, current_range in enumerate(self.ranges):
+          if current_range[0] <= samp < current_range[1]:
+            if count % 2 == 0:
+              left_gray = samp
+            else:
+              right_gray = samp
+
+      left_gray = np.clip(left_gray/255, 0, 1)
+      right_gray = np.clip(right_gray/255, 0, 1)
+
 
     # left_red = bins[odd_idx]
     # left_red = (np.random.random()*255/bin_num+left_red)/255
@@ -100,12 +140,13 @@ class CloseLoopBlockColorSortEnv(CloseLoopEnv):
         pb.changeVisualShape(self.handle_cube[0].object_id, -1, rgbaColor=[1, 1, 0, 1])
         pb.changeVisualShape(self.handle_triangle[0].object_id, -1, rgbaColor=[1, 1, 0, 1])
 
-        # change workspace color
-        print(self.bin_num)
-        left_rgba, right_rgba = self.randSampleGray(self.bin_num, dist='gaussian')
-        # print(left_rgba, right_rgba)
-        pb.changeVisualShape(self.ws_id[0], -1, rgbaColor=left_rgba)
-        pb.changeVisualShape(self.ws_id[1], -1, rgbaColor=right_rgba)
+        if self.custom_workspace:
+          # change workspace color
+          # print(self.bin_num)
+          left_rgba, right_rgba = self.randSampleGray(self.bin_num, dist=self.bin_dist)
+          # print(left_rgba, right_rgba)
+          pb.changeVisualShape(self.ws_id[0], -1, rgbaColor=left_rgba)
+          pb.changeVisualShape(self.ws_id[1], -1, rgbaColor=right_rgba)
 
         # left side and right side sorting task
         self.goal_pos_cube = [0.45, -0.12]
@@ -144,7 +185,7 @@ def createCloseLoopBlockColorSortEnv(config):
 
 
 if __name__ == '__main__':
-  env = CloseLoopBlockColorSortEnv({'seed': 0, 'render': True, 'workspace_option': 'custom,trans_robot,random_init_gripper', 'view_type': 'camera_center_xyz_rgbd_noGripper', 'robot':'panda'})
+  env = CloseLoopBlockColorSortEnv({'seed': 0, 'render': True, 'workspace_option': 'white_plane,custom,trans_robot,random_init_gripper', 'view_type': 'camera_center_xyz_rgbd_noGripper', 'robot':'panda', 'bin_dist':'gaussian_entire', 'bin_num':10})
 
 
   planner = CloseLoopBlockArrangingPlanner(env, {})
