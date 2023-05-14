@@ -33,12 +33,12 @@ class Sensor(object):
     return np.abs(depth - np.max(depth)).reshape(size, size)
 
   def getRGBImg(self, size):
-    lightDirection = np.random.random(3)
+    # lightDirection = np.random.random(3)
     image_arr = pb.getCameraImage(width=size, height=size,
                                   viewMatrix=self.view_matrix,
                                   projectionMatrix=self.proj_matrix,
                                   renderer=pb.ER_TINY_RENDERER,
-                                  lightDirection=lightDirection,
+                                  lightDirection=[0.45, 0, 1],
                                   shadow=0)
     rgb_img = np.moveaxis(image_arr[2][:, :, :3], 2, 0) / 255
     return rgb_img
