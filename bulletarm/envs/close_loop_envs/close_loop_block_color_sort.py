@@ -65,6 +65,11 @@ class CloseLoopBlockColorSortEnv(CloseLoopEnv):
       left_gray = (np.random.random()*255/bin_num+left_gray)/255
       right_gray = bins[odd_idx]
       right_gray = (np.random.random()*255/bin_num+right_gray)/255
+    elif dist == 'uniform_discrete':
+      left_gray = bins[even_idx]/255
+      # left_gray = (np.random.random()*255/bin_num+left_gray)/255
+      right_gray = bins[odd_idx]/255
+      # right_gray = (np.random.random()*255/bin_num+right_gray)/255
     elif dist == 'gaussian_incorrect':
       sigma = 1/bin_num*1.5
       left_gray = bins[even_idx]/255
@@ -142,7 +147,7 @@ class CloseLoopBlockColorSortEnv(CloseLoopEnv):
 
         if self.custom_workspace:
           # change workspace color
-          # print(self.bin_num)
+          # print(f"bin_num:{self.bin_num},bin_dist:{self.bin_dist}")
           left_rgba, right_rgba = self.randSampleGray(self.bin_num, dist=self.bin_dist)
           # print(left_rgba, right_rgba)
           pb.changeVisualShape(self.ws_id[0], -1, rgbaColor=left_rgba)
