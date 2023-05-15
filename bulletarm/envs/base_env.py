@@ -278,6 +278,9 @@ class BaseEnv:
 
     pb.stepSimulation()
 
+  def setFlag(self, flag):
+    pass
+
   def reset(self):
     '''
     Reset the environment.

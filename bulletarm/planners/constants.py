@@ -86,5 +86,5 @@ PLANNERS = {
   'close_loop_household_pushing':CloseLoopHouseholdPushingPlanner,
   'close_loop_block_pushing':CloseLoopBlockPushingPlanner,
   'close_loop_block_in_bowl':CloseLoopBlockInBowlPlanner,
-  'close_loop_block_color_sort':CloseLoopBlockArrangingPlanner,
+  'close_loop_block_arranging': CloseLoopBlockArrangingPlanner
 }

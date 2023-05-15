@@ -38,6 +38,9 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
       elif cmd == 'simulate':
         res = env.simulate(data)
         remote.send(res)
+      elif cmd == 'setFlag':
+        env.setFlag(data)
+        planner.setFlag(data)
       elif cmd == 'can_simulate':
         remote.send(env.canSimulate())
       elif cmd == 'reset_sim':
@@ -198,6 +201,10 @@ class MultiRunner(object):
       return (states, hand_obs, obs), rewards, dones, metadata
     else:
       return (states, hand_obs, obs), rewards, dones
+
+  def setFlag(self, flags):
+    for remote, flag in zip(self.remotes, flags):
+      remote.send(('setFlag', flag))
 
   def reset(self):
     '''

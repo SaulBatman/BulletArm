@@ -254,15 +254,16 @@ class CloseLoopEnv(BaseEnv):
       heightmap = self.heightmap
       # draw gripper if view is centered at the gripper
       if self.view_type in ['camera_center_xyz', 'camera_center_xyz_height', 'render_center', 'render_center_height',
-                            'render_center_side']:
+                            'render_center_side', 'camera_center_xyz_noGripper']:
         gripper_img = self.getGripperImg()
-        if self.view_type.find('noGripper') > -1:
-          heightmap = heightmap
-        elif self.view_type.find('height') > -1:
+        if self.view_type.find('height') > -1:
           gripper_pos = self.robot._getEndEffectorPosition()
           heightmap[gripper_img == 1] = gripper_pos[2]
         else:
-          heightmap[gripper_img == 1] = 0
+          if self.view_type.find('noGripper') > -1:
+            heightmap = heightmap
+          else:
+            heightmap[gripper_img == 1] = 0
         
       elif self.view_type in ['camera_center_xyz_rgbd', 'camera_center_xyz_rgbd_noGripper']:
         gripper_img = self.getGripperImg()
