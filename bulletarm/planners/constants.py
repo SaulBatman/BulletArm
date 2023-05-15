@@ -29,6 +29,7 @@ from bulletarm.planners.close_loop_household_pushing_planner import CloseLoopHou
 from bulletarm.planners.close_loop_block_pushing_planner import CloseLoopBlockPushingPlanner
 from bulletarm.planners.close_loop_block_in_bowl_planner import CloseLoopBlockInBowlPlanner
 from bulletarm.planners.close_loop_block_arranging_planner import CloseLoopBlockArrangingPlanner
+from bulletarm.planners.close_loop_block_color_sort_planner import CloseLoopBlockColorSortPlanner
 
 PLANNERS = {
   'none': lambda *args: None,
@@ -86,5 +87,6 @@ PLANNERS = {
   'close_loop_household_pushing':CloseLoopHouseholdPushingPlanner,
   'close_loop_block_pushing':CloseLoopBlockPushingPlanner,
   'close_loop_block_in_bowl':CloseLoopBlockInBowlPlanner,
-  'close_loop_block_arranging': CloseLoopBlockArrangingPlanner
+  'close_loop_block_arranging': CloseLoopBlockArrangingPlanner,
+  'close_loop_block_color_sort': CloseLoopBlockColorSortPlanner
 }
