@@ -154,8 +154,8 @@ class CloseLoopBlockColorSortEnv(CloseLoopEnv):
           pb.changeVisualShape(self.ws_id[1], -1, rgbaColor=right_rgba)
 
         # left side and right side sorting task
-        self.goal_pos_cube = [0.45, -0.12]
-        self.goal_pos_tri = [0.45, 0.12]
+        self.goal_pos_cube = [0.45, -0.09]
+        self.goal_pos_tri = [0.45, 0.09]
       except NoValidPositionException as e:
         continue
       else:
