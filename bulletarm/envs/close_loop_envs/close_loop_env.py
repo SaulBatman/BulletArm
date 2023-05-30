@@ -64,6 +64,8 @@ class CloseLoopEnv(BaseEnv):
     self.simulate_pos = None
     self.simulate_rot = None
 
+    self.square_gripper = config['square_gripper']
+
     # self.cloud = None
 
   def initialize(self):
@@ -291,20 +293,23 @@ class CloseLoopEnv(BaseEnv):
     if self.robot_type in ['panda', 'ur5', 'ur5_robotiq']:
       gripper_max_open = 42 * self.workspace_size / self.obs_size_m
     elif self.robot_type == 'kuka':
-      gripper_max_open = 45 * self.workspace_size / self.obs_size_m
+      gripper_max_open = 35 * self.workspace_size / self.obs_size_m
     else:
       raise NotImplementedError
     d = int(gripper_max_open/128*self.heightmap_size * gripper_state)
-    square_gripper = False
-    if square_gripper:
+    
+    if self.square_gripper:
       anchor = self.heightmap_size//2
       im[int(anchor - d // 2 - gripper_half_size):int(anchor - d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
       im[int(anchor + d // 2 - gripper_half_size):int(anchor + d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
     else:
-      l = int(0.02/self.obs_size_m * self.heightmap_size/2)*2
-      w = int(0.015/self.obs_size_m * self.heightmap_size/2)*2
-      im[self.heightmap_size//2-d//2-w:self.heightmap_size//2-d//2+w, self.heightmap_size//2-l:self.heightmap_size//2+l] = 1
-      im[self.heightmap_size//2+d//2-w:self.heightmap_size//2+d//2+w, self.heightmap_size//2-l:self.heightmap_size//2+l] = 1
+      anchor = self.heightmap_size//2
+      # print("self.obs_size_m:", self.obs_size_m)
+      # print("self.heightmap_size:", self.heightmap_size)
+      l = 1.2*gripper_half_size
+      w = 0.9*gripper_half_size
+      im[int(anchor-d//2-w):int(anchor-d//2+w), int(anchor-l):int(anchor+l)] = 1
+      im[int(anchor+d//2-w):int(anchor+d//2+w), int(anchor-l):int(anchor+l)] = 1
     im = rotate(im, np.rad2deg(gripper_rz), reshape=False, order=0)
     return im
 
