@@ -8,6 +8,8 @@ from bulletarm.planners.close_loop_block_in_bowl_planner import CloseLoopBlockIn
 from bulletarm.pybullet.utils.constants import NoValidPositionException
 from bulletarm.pybullet.equipments.tray import Tray
 
+from bulletarm.visualization import visualizeObs
+
 class CloseLoopBlockInBowlEnv(CloseLoopEnv):
   '''Close loop block in bowl task.
 
@@ -134,14 +136,19 @@ def createCloseLoopBlockInBowlEnv(config):
 
 from bulletarm.planners.close_loop_block_in_bowl_planner import CloseLoopBlockInBowlPlanner
 if __name__ == '__main__':
-  env = CloseLoopBlockInBowlEnv({'seed': 1, 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  # env = CloseLoopBlockInBowlEnv({'seed': 1, 'robot':'kuka', 'time_horizon': 2, 'view_type': 'camera_side_viola_rgbd_custom_2', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  env = CloseLoopBlockInBowlEnv({'seed': 1, 'robot':'kuka', 'time_horizon': 2, 'obs_type': 'state_tr2', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
   planner = CloseLoopBlockInBowlPlanner(env, {})
   _, _, obs = env.reset()
+  done = [False]
   while True:
     action = planner.getNextAction()
-    action[4] = 0
+    # action[4] = 0
+    global_obs, in_hand, goal_bbox, all_bbox, ee_pos, _, _ = planner.getObsTemporal(done)
+    print(env.current_episode_steps)
     (state, in_hands, obs), reward, done = env.step(action)
-
+    
+    print(1)
     if done:
       print(1)
       # env.reset()

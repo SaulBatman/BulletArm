@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "cnn bc",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/mingxi/workspace/HOCNet/BulletArm/bulletarm_baselines/equi_rl/scripts/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["--env=close_loop_block_stacking", "--num_obj=2", "--num_processes=4", "--num_eval_process=4", "--render=t",
+                "--max_episode_steps=50", "--planner_episode=1", "--dpos=0.02", "--drot_n=8", "--alg=bc_con", "--model=cnn",
+                 "--batch_size=16", "--buffer=normal", "--buffer_aug_n=0","--lr=1e-3", "--seed=1 ", "--workspace_size=0.3",
+                 "--max_train_step=6000", "--simulate_n=0", "--eval_freq=2000", "--num_eval_episodes=50", "--robot=kuka", "--view_type=camera_side_viola_rgbd_custom_2",
+                 "--view_scale=1.5"
+                ]
+        },
+    ]
+}

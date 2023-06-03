@@ -19,7 +19,7 @@ class CloseLoopBlockStackingEnv(CloseLoopEnv):
   '''
   def __init__(self, config):
     if 'num_objects' not in config:
-      config['num_objects'] = 2
+      config['num_objects'] = 5
     super().__init__(config)
     assert self.num_obj >= 2
 
@@ -55,9 +55,13 @@ def createCloseLoopBlockStackingEnv(config):
 
 from bulletarm.planners.close_loop_block_stacking_planner import CloseLoopBlockStackingPlanner
 if __name__ == '__main__':
-  env = CloseLoopBlockStackingEnv({'seed': 1, 'num_objects': 3, 'time_horizon': 2, 'view_type': 'camera_side_viola_rgbd_custom_1', 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  # env = CloseLoopBlockStackingEnv({'seed': 1, 'num_objects': 3, 'time_horizon': 2, 'view_type': 'camera_side_viola_rgbd_custom_2', 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  env = CloseLoopBlockStackingEnv({'num_objects':2,'seed': 1, 'robot':'kuka', 'time_horizon': 2, 'obs_type': 'state_tr2', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+
+  
   planner = CloseLoopBlockStackingPlanner(env, {})
   _, _, obs = env.reset()
+  
   step_num = 0
   while True:
     action = planner.getNextAction()
@@ -71,8 +75,11 @@ if __name__ == '__main__':
     # plt.imshow(goal_obs)
     # plt.figure(2)
     # plt.imshow(global_obs)
+    print(env.getCurrentTimeStep())
     (state, in_hands, obs), reward, done = env.step(action)
-    global_obs, in_hand, goal_bbox, all_bbox, ee_pos = planner.getObsTemporal(done)
+    global_obs, in_hand, goal_bbox, all_bbox, ee_pos, sub_traj_id, high_level_info = planner.getObsTemporal(done)
+    # if high_level_info.max() >1 :
+    #   print(high_level_info)
     print(1)
     # obs1, obs2, obs3 = planner.obscrop(global_obs, all_bbox)
     # fig, axs = plt.subplots(1, 3, figsize=(9, 3))
@@ -80,5 +87,5 @@ if __name__ == '__main__':
     # axs[1].imshow(obs2)
     # axs[2].imshow(obs3)
     # print(1)
-    # if done:
-    #   env.reset()
+    if done:
+      env.reset()

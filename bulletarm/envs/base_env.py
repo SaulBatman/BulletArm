@@ -482,6 +482,8 @@ class BaseEnv:
       padding = 0.13 * 0.85
     elif shape_type == constants.KITCHEN_KNIFE:
       padding = 0.13 * 0.95
+    elif shape_type == constants.VOID_GOAL:
+      padding = 0.13
     else:
       raise ValueError('Attempted to generate invalid shape.')
     return padding
@@ -511,6 +513,8 @@ class BaseEnv:
       min_distance = 0.13 * 0.85
     elif shape_type == constants.KITCHEN_KNIFE:
       min_distance = 0.13 * 0.95
+    elif shape_type == constants.VOID_GOAL:
+      min_distance = 0.13
 
     else:
       raise ValueError('Attempted to generate invalid shape.')
@@ -630,6 +634,8 @@ class BaseEnv:
         handle = pb_obj_generation.generateKitchenKnife(position, orientation, scale)
       elif shape_type == constants.KITCHEN_FORK:
         handle = pb_obj_generation.generateKitchenFork(position, orientation, scale)
+      elif shape_type == constants.VOID_GOAL:
+        handle = pb_obj_generation.generateVOIDGOAL(position, orientation, scale)
 
 
       else:

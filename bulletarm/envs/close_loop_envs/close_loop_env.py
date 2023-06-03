@@ -148,15 +148,15 @@ class CloseLoopEnv(BaseEnv):
     self.simulate_rot = rot
     return obs, reward, done
 
-  def getJointAngles(self):
-    # p, x, y, z, rot = self._decodeAction(action)
-    current_pos = self.robot._getEndEffectorPosition()
-    current_rot = transformations.euler_from_quaternion(self.robot._getEndEffectorRotation())
-    # if self.action_sequence.count('r') == 1:
-    #   current_rot[0] = 0
-    #   current_rot[1] = 0
+  # def getJointAngles(self):
+  #   # p, x, y, z, rot = self._decodeAction(action)
+  #   current_pos = self.robot._getEndEffectorPosition()
+  #   current_rot = transformations.euler_from_quaternion(self.robot._getEndEffectorRotation())
+  #   # if self.action_sequence.count('r') == 1:
+  #   #   current_rot[0] = 0
+  #   #   current_rot[1] = 0
 
-    return self.robot._calculateIK(current_pos, current_rot)
+  #   return self.robot._calculateIK(current_pos, current_rot)
 
 
   def setRobotHoldingObj(self):
@@ -230,9 +230,18 @@ class CloseLoopEnv(BaseEnv):
     gripper_state = gripper_state * 2 - 1
     gripper_state = np.clip(gripper_state, -1, 1)
     # gripper_state = 1 if self._isHolding() else -1
-    obs = np.concatenate(
-      [np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz]), scaled_obj_poses])
-    return obs
+    if self.obs_type == 'state_tr2':
+      # returns (15+15+1+3+1)=35 vector obs
+      # normalize angles and vel with max_angle=+-10, max_vel=+-10 constrain
+      joint_angles = self.robot.getJointAngles()/10
+      joint_vels = self.robot.getJointVels()/10
+      gripper_state = 1 if self._isHolding() else -1
+      obs = np.concatenate([joint_angles, joint_vels, np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz])])
+      return obs
+    else:
+      obs = np.concatenate(
+        [np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz]), scaled_obj_poses])
+      return obs
 
   def world2pixel(self, gripper_pos, offset=[0,0]):
     workspace_size = self.workspace[0][1]-self.workspace[0][0]
@@ -290,7 +299,8 @@ class CloseLoopEnv(BaseEnv):
       return self._isHolding(), in_hand_img, heightmap
     else:
       obs = self._getVecObservation()
-      return self._isHolding(), None, obs
+      in_hand = 0
+      return self._isHolding(), in_hand, obs
 
   def _getHeightmapInHand(self, gripper_pos=None):
     # assume "camera_center_xyz"
@@ -438,15 +448,16 @@ class CloseLoopEnv(BaseEnv):
       raise NotImplementedError
     d = int(gripper_max_open/128*heightmap_size * gripper_state)
     square_gripper = False
+    anchor = heightmap_size//2
     if square_gripper:
-      anchor = heightmap_size//2
+      
       im[int(anchor - d // 2 - gripper_half_size):int(anchor - d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
       im[int(anchor + d // 2 - gripper_half_size):int(anchor + d // 2 + gripper_half_size), int(anchor - gripper_half_size):int(anchor + gripper_half_size)] = 1
     else:
-      l = int(0.02/obs_size_m * heightmap_size/2)*2
-      w = int(0.015/obs_size_m * heightmap_size/2)*2
-      im[heightmap_size//2-d//2-w:heightmap_size//2-d//2+w, heightmap_size//2-l:heightmap_size//2+l] = 1
-      im[heightmap_size//2+d//2-w:heightmap_size//2+d//2+w, heightmap_size//2-l:heightmap_size//2+l] = 1
+      l = 1.2*gripper_half_size
+      w = 0.9*gripper_half_size
+      im[int(anchor-d//2-w):int(anchor-d//2+w), int(anchor-l):int(anchor+l)] = 1
+      im[int(anchor+d//2-w):int(anchor+d//2+w), int(anchor-l):int(anchor+l)] = 1
     im = rotate(im, np.rad2deg(gripper_rz), reshape=False, order=0)
     return im
 
@@ -609,7 +620,7 @@ class CloseLoopEnv(BaseEnv):
       return depth
     elif self.view_type in ['camera_side_viola_custom_2', 'camera_side_viola_rgbd_custom_2', 'camera_side_viola_height_custom_2']:
       # 2
-      cam_pos = [1.5, self.workspace[1].mean(), 1.3]
+      cam_pos = [1.2, self.workspace[1].mean(), 1]
       target_pos = [self.workspace[0].mean()-0.2, self.workspace[1].mean(), 0]
       cam_up_vector = [0, 0, 3]
       self.sensor = Sensor(cam_pos, cam_up_vector, target_pos, 0.7, 0.3, 3)
@@ -694,3 +705,20 @@ class CloseLoopEnv(BaseEnv):
     transform = np.append(pos, rot[2])
     
     return np.append(gripper_width, transform) # [p, x, y, z, theta]
+  
+  def getCurrentTimeStep(self):
+    # return self.current_episode_steps - 1
+    current_time_steps = self.current_episode_steps - 1
+    current_time_steps = current_time_steps.numpy()
+    mask = np.zeros(self.time_horizon)
+    quetient = current_time_steps // self.time_horizon
+    mask_steps = current_time_steps % self.time_horizon
+    time_steps = np.zeros(self.time_horizon)
+    if quetient < 1:
+        mask[self.time_horizon-mask_steps:self.time_horizon] = np.ones(mask_steps)
+        time_steps[self.time_horizon-mask_steps:self.time_horizon] = np.arange(0, mask_steps, 1)
+    else:
+        mask = np.ones(self.time_horizon).astype(bool)
+        time_steps = np.arange(0, self.time_horizon, 1)
+        
+    return mask.astype(bool), time_steps.astype(int)

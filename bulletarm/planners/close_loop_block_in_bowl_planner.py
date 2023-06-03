@@ -33,6 +33,7 @@ class CloseLoopBlockInBowlPlanner(CloseLoopPlanner):
     self.release_pos = [bowl_pos[0], bowl_pos[1], bowl_pos[2] + 0.1]
 
   def setNewTarget(self):
+    self.target_obj = self.env.objects[0]
     if self.stage == 0:
       self.setWaypoints()
       self.current_target = (self.pre_grasp_pos, self.rot, 1, 1)

@@ -170,6 +170,12 @@ class Kuka(RobotBase):
     p1 = -pb.getJointState(self.id, 8)[0]
     p2 = pb.getJointState(self.id, 11)[0]
     return p1, p2
+  
+  def getJointAngles(self):
+    return np.array([pb.getJointState(self.id, i)[0] for i in range(self.num_joints)])
+
+  def getJointVels(self):
+    return np.array([pb.getJointState(self.id, i)[1] for i in range(self.num_joints)])
 
   def _sendPositionCommand(self, commands):
     ''''''

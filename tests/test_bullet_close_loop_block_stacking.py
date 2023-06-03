@@ -8,26 +8,27 @@ import matplotlib.pyplot as plt
 from bulletarm import env_factory
 
 class TestBulletCloseLoopBlockStacking(unittest.TestCase):
-  env_config = {"time_horizon": 10, "object_bbox": 't', "view_type": 'camera_fix'}
+  env_config = {"time_horizon": 10, "object_bbox": 't', 'obs_type': 'state_tr2'}
 
   planner_config = {'random_orientation': True, 'dpos': 0.05, 'drot': np.pi / 4}
 
   def testPlanner2(self):
     self.env_config['render'] = True
     self.env_config['seed'] = 0
-    num_processes = 1
+    num_processes = 3
     env = env_factory.createEnvs(num_processes,  'close_loop_block_stacking', self.env_config, self.planner_config)
     total = 0
     s = 0
     step_times = []
-    env.reset()
+    states, hand_obs, obs = env.reset()
     pbar = tqdm(total=500)
     while total < 500:
       t0 = time.time()
       action = env.getNextAction()
       t_plan = time.time() - t0
+      print(env.getCurrentTimeStep())
       (states_, in_hands_, obs_), rewards, dones = env.step(action, auto_reset=True)
-      global_obs, goal_bbox, all_bbox = env.getObsTemporal(dones)
+      global_obs, in_hands, goal_bbox, all_bbox, ee_poss, sub_traj_masks, high_level_info = env.getObsTemporal(dones)
       # plt.imshow(obs_[0, 0])
       # plt.colorbar()
       # plt.show()

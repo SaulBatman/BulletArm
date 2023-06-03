@@ -30,6 +30,7 @@ from bulletarm.pybullet.objects.shoe_rack_short import ShoeRackShort
 from bulletarm.pybullet.objects.kitchen_plate import KitchenPlate
 from bulletarm.pybullet.objects.kitchen_knife import KitchenKnife
 from bulletarm.pybullet.objects.kitchen_fork import KitchenFork
+from bulletarm.pybullet.objects.void_goal import VoidGoal
 
 def generateCube(pos, rot, scale):
   ''''''
@@ -109,3 +110,6 @@ def generateKitchenKnife(pos, rot, scale):
 
 def generateKitchenFork(pos, rot, scale):
   return KitchenFork(pos, rot, scale)
+
+def generateVOIDGOAL(pos, rot, scale):
+  return VoidGoal(pos, rot, scale)

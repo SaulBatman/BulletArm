@@ -6,7 +6,7 @@ from bulletarm.pybullet.utils import transformations
 import matplotlib.pyplot as plt
 import queue
 
-class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
+class CloseLoopBlockStackingTR2Planner(CloseLoopPlanner):
   def __init__(self, env, config):
     super().__init__(env, config)
     # self.time_horizon = self.env.time_horizon
@@ -40,7 +40,6 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
     return self.env._encodeAction(primitive, x, y, z, r)
 
   def setNewTarget(self):
-    
     objects = np.array(list(filter(lambda x: not self.isObjectHeld(x) and self.isObjOnTop(x), self.env.objects)))
     object_poses = self.env.getObjectPoses(objects)
     sorted_inds = np.flip(np.argsort(object_poses[:,2], axis=0))
@@ -59,7 +58,7 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
         object_rot[2] -= np.pi / 2
       while object_rot[2] - gripper_rz < -np.pi / 4:
         object_rot[2] += np.pi / 2
-      pre_pick_pos = object_pos[0], object_pos[1], object_pos[2] + 0.1
+      pre_pick_pos = object_pos[0], object_pos[1], 0.25
       if self.pick_place_stage == 0:
         self.pick_place_stage = 1
         self.current_target = (pre_pick_pos, object_rot, constants.PLACE_PRIMATIVE)
@@ -81,13 +80,17 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
         object_rot[2] -= np.pi / 2
       while object_rot[2] - gripper_rz < -np.pi / 4:
         object_rot[2] += np.pi / 2
+      
       pre_place_pos = object_pos[0], object_pos[1], object_pos[2] + 0.1
       if self.pick_place_stage == 3:
         self.pick_place_stage = 4
         self.current_target = (pre_place_pos, object_rot, constants.PICK_PRIMATIVE)
       elif self.pick_place_stage == 4:
         self.pick_place_stage = 5
-        place_pos = object_pos[0], object_pos[1], object_pos[2] + self.getMaxBlockSize() * 1.2
+        if self.target_obj.object_type_id == 31:
+          place_pos = object_pos[0], object_pos[1], object_pos[2]
+        else:
+          place_pos = object_pos[0], object_pos[1], object_pos[2] + self.getMaxBlockSize() * 1.2
         self.current_target = (place_pos, object_rot, constants.PLACE_PRIMATIVE)
       else:
         self.pick_place_stage = 0
@@ -118,7 +121,16 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
       NotImplementedError
     return high_level_info
   
-  
+  def getHighLevelTraj(self, traj_type='tr2'):
+    if traj_type == 'tr2':
+       ee_xyz = self.env.robot._getEndEffectorPosition()
+       goal_xyz = self.target_obj.getPosition()
+       high_level_info = np.concatenate([ee_xyz, goal_xyz])
+    else:
+      NotImplementedError
+
+    self.recover()
+    return high_level_info
 
 
 

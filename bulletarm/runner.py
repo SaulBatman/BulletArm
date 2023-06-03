@@ -52,6 +52,8 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
       elif cmd == 'reset':
         obs = env.reset()
         remote.send(obs)
+      elif cmd == 'get_current_step':
+        remote.send(env.getCurrentTimeStep())
       elif cmd == 'getPointCloud':
         remote.send(env.getPointCloud())
       elif cmd == 'getEndEffectorPose':
@@ -263,16 +265,27 @@ class MultiRunner(object):
         remote.send(('get_next_temporal', done))    
       results = [remote.recv() for remote in self.remotes]
       res = tuple(zip(*results))
-      global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss = res
+      global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss, sub_traj_masks, high_level_info= res
 
       global_obss = np.stack(global_obss)
       in_hands = np.stack(in_hands)
       goal_bboxes = np.stack(goal_bboxes)
       all_bboxes = np.stack(all_bboxes)
       ee_poss = np.stack(ee_poss)
+      sub_traj_masks = np.stack(sub_traj_masks)
+      high_level_info = np.stack(high_level_info)
 
 
-      return global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss
+      return global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss, sub_traj_masks, high_level_info
+
+  def getCurrentTimeStep(self):
+    for remote in self.remotes:
+        remote.send(('get_current_step', None))    
+
+    current_time_step = [remote.recv() for remote in self.remotes]
+    # current_time_step = zip(*current_time_step)
+
+    return current_time_step
 
   def reset(self):
     '''

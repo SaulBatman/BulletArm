@@ -10,16 +10,20 @@ from bulletarm.pybullet.objects.pybullet_object import PybulletObject
 from bulletarm.pybullet.utils import constants
 from bulletarm.pybullet.utils import transformations
 
-class Cube(PybulletObject):
+class VoidGoal(PybulletObject):
   def __init__(self, pos, rot, scale):
-    root_dir = os.path.dirname(bulletarm.__file__)
-    urdf_filepath = os.path.join(root_dir, constants.OBJECTS_PATH, 'cube.urdf')
-    object_id = pb.loadURDF(urdf_filepath, basePosition=pos, baseOrientation=rot, globalScaling=scale)
+    goal_visual = pb.createVisualShape(pb.GEOM_SPHERE, 
+                                       radius=0.025, 
+                                       rgbaColor=[0, 0, 1, 1])
+    self.object_id = pb.createMultiBody(baseMass=0,
+                                      baseVisualShapeIndex=goal_visual,
+                                      basePosition=pos,
+                                      baseOrientation=rot )
+    
+    super(VoidGoal, self).__init__(constants.VOID_GOAL, self.object_id)
 
-    super(Cube, self).__init__(constants.CUBE, object_id)
-
-    self.original_size = 0.05
-    self.size = 0.05 * 0.0001
+    self.original_size = 0.025
+    self.size = 0.01 * scale
 
   def getHeight(self):
     return self.size
@@ -27,6 +31,11 @@ class Cube(PybulletObject):
   def getRotation(self):
     pos, rot = self.getPose()
     return rot
+  
+  # def getPosition(self):
+  #   pos, _ = pb.getBasePositionAndOrientation(self.object_id)
+  #   pos[-1] = 0
+  #   return list(pos)
 
   def getPose(self):
     pos, rot = pb.getBasePositionAndOrientation(self.object_id)

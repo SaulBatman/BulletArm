@@ -128,6 +128,9 @@ class BasePlanner(object):
 
   def checkOnTopOf(self, bottom_obj, top_obj):
     return self.env._checkOnTop(bottom_obj, top_obj)
+  
+  def checkonGround(self, obj):
+    return self.env._isObjOnGround(obj)
 
   def checkInBetween(self, middle_obj, side_obj1, side_obj2):
     return self.env._checkInBetween(middle_obj, side_obj1, side_obj2)
