@@ -27,6 +27,9 @@ class BasePlanner(object):
 
   def getObsTemporal(self):
     raise NotImplemented('Planners must implement this function')
+  
+  def getObsTemporalBBox(self):
+    raise NotImplemented('Planners must implement this function')
 
   def getValue(self):
     return self.gamma**self.getStepsLeft()

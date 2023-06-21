@@ -59,7 +59,7 @@ class CloseLoopBlockStackingPlanner(CloseLoopPlanner):
         object_rot[2] -= np.pi / 2
       while object_rot[2] - gripper_rz < -np.pi / 4:
         object_rot[2] += np.pi / 2
-      pre_pick_pos = object_pos[0], object_pos[1], object_pos[2] + 0.1
+      pre_pick_pos = object_pos[0], object_pos[1], object_pos[2] + 0.2
       if self.pick_place_stage == 0:
         self.pick_place_stage = 1
         self.current_target = (pre_pick_pos, object_rot, constants.PLACE_PRIMATIVE)

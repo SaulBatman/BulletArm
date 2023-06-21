@@ -3,7 +3,6 @@ import numpy as np
 from bulletarm.pybullet.utils import constants
 from bulletarm.planners.close_loop_planner import CloseLoopPlanner
 from bulletarm.pybullet.utils import transformations
-import matplotlib.pyplot as plt
 import queue
 
 class CloseLoopBlockStackingTR2Planner(CloseLoopPlanner):
@@ -51,6 +50,7 @@ class CloseLoopBlockStackingTR2Planner(CloseLoopPlanner):
     if self.pick_place_stage in [0, 1, 2]:
       if self.target_obj is None:
         self.target_obj = objects[1] if len(objects) > 1 else objects[0]
+        # self.goal_obj = self.target_obj
       object_pos = self.target_obj.getPosition()
       object_rot = list(transformations.euler_from_quaternion(self.target_obj.getRotation()))
       gripper_rz = transformations.euler_from_quaternion(self.env.robot._getEndEffectorRotation())[2]
@@ -58,7 +58,7 @@ class CloseLoopBlockStackingTR2Planner(CloseLoopPlanner):
         object_rot[2] -= np.pi / 2
       while object_rot[2] - gripper_rz < -np.pi / 4:
         object_rot[2] += np.pi / 2
-      pre_pick_pos = object_pos[0], object_pos[1], 0.25
+      pre_pick_pos = object_pos[0], object_pos[1], 0.15
       if self.pick_place_stage == 0:
         self.pick_place_stage = 1
         self.current_target = (pre_pick_pos, object_rot, constants.PLACE_PRIMATIVE)
@@ -73,6 +73,7 @@ class CloseLoopBlockStackingTR2Planner(CloseLoopPlanner):
     else:
       if self.target_obj is None:
         self.target_obj = objects[0]
+      # self.last_target_obj = self.target_obj
       object_pos = self.target_obj.getPosition()
       object_rot = list(transformations.euler_from_quaternion(self.target_obj.getRotation()))
       gripper_rz = transformations.euler_from_quaternion(self.env.robot._getEndEffectorRotation())[2]
@@ -121,16 +122,7 @@ class CloseLoopBlockStackingTR2Planner(CloseLoopPlanner):
       NotImplementedError
     return high_level_info
   
-  def getHighLevelTraj(self, traj_type='tr2'):
-    if traj_type == 'tr2':
-       ee_xyz = self.env.robot._getEndEffectorPosition()
-       goal_xyz = self.target_obj.getPosition()
-       high_level_info = np.concatenate([ee_xyz, goal_xyz])
-    else:
-      NotImplementedError
-
-    self.recover()
-    return high_level_info
+  
 
 
 

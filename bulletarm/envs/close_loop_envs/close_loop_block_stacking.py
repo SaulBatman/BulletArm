@@ -19,11 +19,12 @@ class CloseLoopBlockStackingEnv(CloseLoopEnv):
   '''
   def __init__(self, config):
     if 'num_objects' not in config:
-      config['num_objects'] = 5
+      config['num_objects'] = 2
     super().__init__(config)
     assert self.num_obj >= 2
 
   def reset(self):
+    self.done=0
     while True:
       self.resetPybulletWorkspace()
       self.robot.moveTo([self.workspace[0].mean(), self.workspace[1].mean(), 0.2], transformations.quaternion_from_euler(0, 0, 0))
@@ -56,10 +57,10 @@ def createCloseLoopBlockStackingEnv(config):
 from bulletarm.planners.close_loop_block_stacking_planner import CloseLoopBlockStackingPlanner
 if __name__ == '__main__':
   # env = CloseLoopBlockStackingEnv({'seed': 1, 'num_objects': 3, 'time_horizon': 2, 'view_type': 'camera_side_viola_rgbd_custom_2', 'robot':'kuka', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
-  env = CloseLoopBlockStackingEnv({'num_objects':2,'seed': 1, 'robot':'kuka', 'time_horizon': 2, 'obs_type': 'state_tr2', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True})
+  env = CloseLoopBlockStackingEnv({'num_objects':2,'seed': 1, 'robot':'kuka', 'time_horizon': 2, 'obs_type': 'state_tr2', 'seed': 1, 'view_scale': 1.5, 'workspace': np.array([[0.25, 0.65], [-0.2, 0.2], [0.01, 0.25]]), 'render': True, 'dpos': 0.01})
 
   
-  planner = CloseLoopBlockStackingPlanner(env, {})
+  planner = CloseLoopBlockStackingPlanner(env, {"max_teacher_length":50})
   _, _, obs = env.reset()
   
   step_num = 0
@@ -77,7 +78,7 @@ if __name__ == '__main__':
     # plt.imshow(global_obs)
     print(env.getCurrentTimeStep())
     (state, in_hands, obs), reward, done = env.step(action)
-    global_obs, in_hand, goal_bbox, all_bbox, ee_pos, sub_traj_id, high_level_info = planner.getObsTemporal(done)
+    state, global_obs, in_hand, ee_pos = planner.getObsTemporal()
     # if high_level_info.max() >1 :
     #   print(high_level_info)
     print(1)

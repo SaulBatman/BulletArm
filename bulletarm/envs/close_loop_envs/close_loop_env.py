@@ -41,7 +41,8 @@ class CloseLoopEnv(BaseEnv):
                               'camera_center_z', 'camera_center_z_height', 'pers_center_xyz', 'camera_side',
                               'camera_side_rgbd', 'camera_side_height', 'camera_side_viola', 'camera_side_viola_rgbd',
                               "camera_side_viola_rgbd_custom_1", "camera_side_viola_rgbd_custom_2",
-                               "ws_center_fix", "ws_center_fix_height"]
+                               "ws_center_fix", "ws_center_fix_height", 
+                               "vector_tr2", "vector_original", "vector_goal", "vector_goal_distance"]
     self.view_scale = config['view_scale']
     self.robot_type = config['robot']
     if config['robot'] == 'kuka':
@@ -69,6 +70,9 @@ class CloseLoopEnv(BaseEnv):
     self.simulate_rot = None
 
     self.time_horizon = config['time_horizon']
+    self.done = 0
+    self.obs_type = config['obs_type']
+    self.high_traj_type = config['high_traj_type']
     # self.cloud = None
 
   def initialize(self):
@@ -107,46 +111,62 @@ class CloseLoopEnv(BaseEnv):
     self.simulate_rot = transformations.euler_from_quaternion(self.robot._getEndEffectorRotation())
 
   def step(self, action):
-    p, x, y, z, rot = self._decodeAction(action)
-    current_pos = self.robot._getEndEffectorPosition()
-    current_rot = list(transformations.euler_from_quaternion(self.robot._getEndEffectorRotation()))
-    if self.action_sequence.count('r') == 1:
-      current_rot[0] = 0
-      current_rot[1] = 0
+    if self.done == 0:
+      p, x, y, z, rot = self._decodeAction(action)
+      current_pos = self.robot._getEndEffectorPosition()
+      current_rot = list(transformations.euler_from_quaternion(self.robot._getEndEffectorRotation()))
+      if self.action_sequence.count('r') == 1:
+        current_rot[0] = 0
+        current_rot[1] = 0
 
-    # bTg = transformations.euler_matrix(0, 0, current_rot[-1])
-    # bTg[:3, 3] = current_pos
-    # gTt = np.eye(4)
-    # gTt[:3, 3] = [x, y, z]
-    # bTt = bTg.dot(gTt)
-    # pos = bTt[:3, 3]
+      # bTg = transformations.euler_matrix(0, 0, current_rot[-1])
+      # bTg[:3, 3] = current_pos
+      # gTt = np.eye(4)
+      # gTt[:3, 3] = [x, y, z]
+      # bTt = bTg.dot(gTt)
+      # pos = bTt[:3, 3]
 
-    pos = np.array(current_pos) + np.array([x, y, z])
-    rot = np.array(current_rot) + np.array(rot)
-    rot_q = pb.getQuaternionFromEuler(rot)
-    pos[0] = np.clip(pos[0], self.workspace[0, 0], self.workspace[0, 1])
-    pos[1] = np.clip(pos[1], self.workspace[1, 0], self.workspace[1, 1])
-    pos[2] = np.clip(pos[2], self.workspace[2, 0], self.workspace[2, 1])
-    self.robot.moveTo(pos, rot_q, dynamic=True)
-    self.robot.controlGripper(p)
-    self.robot.adjustGripperCommand()
-    self.setRobotHoldingObj()
-    self.renderer.clearPoints()
-    obs = self._getObservation(action)
-    valid = self.isSimValid()
-    if valid:
-      done = self._checkTermination()
-      reward = 1.0 if done else 0.0
+      pos = np.array(current_pos) + np.array([x, y, z])
+      rot = np.array(current_rot) + np.array(rot)
+      rot_q = pb.getQuaternionFromEuler(rot)
+      pos[0] = np.clip(pos[0], self.workspace[0, 0], self.workspace[0, 1])
+      pos[1] = np.clip(pos[1], self.workspace[1, 0], self.workspace[1, 1])
+      pos[2] = np.clip(pos[2], self.workspace[2, 0], self.workspace[2, 1])
+      self.robot.moveTo(pos, rot_q, dynamic=True)
+      self.robot.controlGripper(p)
+      self.robot.adjustGripperCommand()
+      self.setRobotHoldingObj()
+      self.renderer.clearPoints()
+      obs = self._getObservation(action)
+      valid = self.isSimValid()
+      if valid:
+        done = self._checkTermination()
+        reward = 1.0 if done else 0.0
+      else:
+        done = True
+        reward = 0
+      if not done:
+        done = self.current_episode_steps >= self.max_steps
+      self.done = done
+      if not self.done:
+        self.current_episode_steps += 1
+      
+      self.simulate_pos = pos
+      self.simulate_rot = rot
+
+      return obs, reward, done
     else:
-      done = True
-      reward = 0
-    if not done:
-      done = self.current_episode_steps >= self.max_steps
-    self.current_episode_steps += 1
-
-    self.simulate_pos = pos
-    self.simulate_rot = rot
-    return obs, reward, done
+      if self.obs_type == 'pixel':
+        obs = (None, None, None)
+      elif self.obs_type == 'state':
+        if self.view_type in ['vector_goal', 'vector_goal_distance']:
+          obs_dim = 5
+        elif self.view_type == 'vector_tr2':
+          obs_dim = 35
+        elif self.view_type == 'vector_original':
+          obs_dim = 13
+        obs = (None, None, np.array([0 for _ in range(obs_dim)]))
+      return obs, self.done, self.done
 
   # def getJointAngles(self):
   #   # p, x, y, z, rot = self._decodeAction(action)
@@ -226,22 +246,34 @@ class CloseLoopEnv(BaseEnv):
       scaled_obj_poses.append(
         np.concatenate([self._scalePos(obj_poses[i, :3]), np.array([self._scaleRz(obj_poses[i, 3])])]))
     scaled_obj_poses = np.concatenate(scaled_obj_poses)
+    max_num_obj=2
+    # padded_obj_poses = np.zeros(4*max_num_obj)
+    # padded_obj_poses[:len(scaled_obj_poses)] = scaled_obj_poses
     gripper_state = self.robot.getGripperOpenRatio()
     gripper_state = gripper_state * 2 - 1
     gripper_state = np.clip(gripper_state, -1, 1)
     # gripper_state = 1 if self._isHolding() else -1
-    if self.obs_type == 'state_tr2':
+    if self.obs_type == 'state':
       # returns (15+15+1+3+1)=35 vector obs
       # normalize angles and vel with max_angle=+-10, max_vel=+-10 constrain
       joint_angles = self.robot.getJointAngles()/10
       joint_vels = self.robot.getJointVels()/10
       gripper_state = 1 if self._isHolding() else -1
-      obs = np.concatenate([joint_angles, joint_vels, np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz])])
+      if self.view_type in ['vector_tr2']:
+        obs = np.concatenate([np.array([gripper_state]), joint_angles, joint_vels, scaled_gripper_pos, np.array([scaled_gripper_rz])])
+      elif self.view_type in ['vector_goal', 'vector_goal_distance']:
+        obs = np.concatenate(
+            [np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz])])
+      elif self.view_type in ['vector_original']:
+        obs = np.concatenate(
+          [np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz]), scaled_obj_poses])
+      else:
+        NotImplementedError
       return obs
-    else:
-      obs = np.concatenate(
-        [np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz]), scaled_obj_poses])
-      return obs
+    # else:
+    #   obs = np.concatenate(
+    #     [np.array([gripper_state]), scaled_gripper_pos, np.array([scaled_gripper_rz]), scaled_obj_poses])
+    #   return obs
 
   def world2pixel(self, gripper_pos, offset=[0,0]):
     workspace_size = self.workspace[0][1]-self.workspace[0][0]
@@ -708,8 +740,7 @@ class CloseLoopEnv(BaseEnv):
   
   def getCurrentTimeStep(self):
     # return self.current_episode_steps - 1
-    current_time_steps = self.current_episode_steps - 1
-    current_time_steps = current_time_steps.numpy()
+    current_time_steps = self.current_episode_steps
     mask = np.zeros(self.time_horizon)
     quetient = current_time_steps // self.time_horizon
     mask_steps = current_time_steps % self.time_horizon
@@ -719,6 +750,8 @@ class CloseLoopEnv(BaseEnv):
         time_steps[self.time_horizon-mask_steps:self.time_horizon] = np.arange(0, mask_steps, 1)
     else:
         mask = np.ones(self.time_horizon).astype(bool)
-        time_steps = np.arange(0, self.time_horizon, 1)
+        time_steps = np.arange(0, self.time_horizon, 1) + (current_time_steps-self.time_horizon)
         
     return mask.astype(bool), time_steps.astype(int)
+  
+  

@@ -49,6 +49,15 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
           # get observation after reset (res index 0), the rest stays the same
           res = (env.reset(), *res[1:])
         remote.send(res)
+      elif cmd == 'step_auto_reset_tr2':
+        res = env.step(data)
+        done = res[2]
+        if done:
+          # get observation after reset (res index 0), the rest stays the same
+          data = env.reset()
+          high_traj = planner.getHighLevelTraj()
+          res = (data, high_traj, *res[1:])
+        remote.send(res)
       elif cmd == 'reset':
         obs = env.reset()
         remote.send(obs)
@@ -69,6 +78,11 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
           remote.send(planner.getNextAction())
         else:
           raise ValueError('Attempting to use a planner which was not initialized.')
+      elif cmd == 'get_next_temporal_action':
+        if planner:
+          remote.send(planner.getNextTemporalAction(data))
+        else:
+          raise ValueError('Attempting to use a planner which was not initialized.')
       elif cmd == 'get_next_goal':
         if planner:
           remote.send(planner.getNextGoal())
@@ -76,7 +90,17 @@ def worker(remote, parent_remote, env_fn, planner_fn=None):
           raise ValueError('Attempting to use a planner which was not initialized.')
       elif cmd == 'get_next_temporal':
         if planner:
-          remote.send(planner.getObsTemporal(data))
+          remote.send(planner.getObsTemporal())
+        else:
+          raise ValueError('Attempting to use a planner which was not initialized.')  
+      elif cmd == 'get_next_temporal_bbox':
+        if planner:
+          remote.send(planner.getObsTemporalBBox(data))
+        else:
+          raise ValueError('Attempting to use a planner which was not initialized.')  
+      elif cmd == 'get_high_traj':
+        if planner:
+          remote.send(planner.getHighLevelTraj())
         else:
           raise ValueError('Attempting to use a planner which was not initialized.')  
       elif cmd == 'get_num_obj':
@@ -129,7 +153,7 @@ class MultiRunner(object):
     for remote in self.worker_remotes:
       remote.close()
 
-  def step(self, actions, auto_reset=False):
+  def step(self, actions, auto_reset='step_auto_reset'):
     '''
     Step the environments synchronously.
 
@@ -141,7 +165,10 @@ class MultiRunner(object):
       (numpy.array, numpy.array, numpy.array): (observations, rewards, done flags)
     '''
     self.stepAsync(actions, auto_reset)
-    return self.stepWait()
+    if auto_reset=='step_auto_reset_tr2':
+      return self.stepWaitTR2()
+    else:
+      return self.stepWait()
 
   def simulate(self, actions):
     for remote, action in zip(self.remotes, actions):
@@ -187,7 +214,7 @@ class MultiRunner(object):
 
     return pos
 
-  def stepAsync(self, actions, auto_reset=False):
+  def stepAsync(self, actions, auto_reset='step_auto_reset'):
     '''
     Step each environment in a async fashion.
 
@@ -196,8 +223,10 @@ class MultiRunner(object):
       auto_reset (bool): Reset environments automatically after an episode ends
     '''
     for remote, action in zip(self.remotes, actions):
-      if auto_reset:
+      if auto_reset=='step_auto_reset':
         remote.send(('step_auto_reset', action))
+      elif auto_reset=='step_auto_reset_tr2':
+        remote.send(('step_auto_reset_tr2', action))
       else:
         remote.send(('step', action))
     self.waiting = True
@@ -232,6 +261,37 @@ class MultiRunner(object):
       return (states, hand_obs, obs), rewards, dones, metadata
     else:
       return (states, hand_obs, obs), rewards, dones
+    
+  def stepWaitTR2(self):
+    '''
+    Wait until each environment has completed its next step.
+
+    Returns:
+      (numpy.array, numpy.array, numpy.array): (observations, rewards, done flags)
+    '''
+    results = [remote.recv() for remote in self.remotes]
+    self.waiting = False
+
+    res = tuple(zip(*results))
+
+    if len(res) == 3:
+      metadata = None
+      obs, rewards, dones = res
+    else:
+      obs, rewards, dones, traj, metadata = res
+
+    states, hand_obs, obs = zip(*obs)
+
+    states = np.stack(states).astype(float)
+    hand_obs = np.stack(hand_obs)
+    obs = np.stack(obs)
+    rewards = np.stack(rewards)
+    dones = np.stack(dones).astype(np.float32)
+
+    if metadata:
+      return (states, hand_obs, obs), rewards, dones, traj, metadata
+    else:
+      return (states, hand_obs, obs), rewards, dones
 
   def getNextGoal(self):
       '''
@@ -254,7 +314,28 @@ class MultiRunner(object):
 
       return global_obs, in_hands, goal_bbox, all_bbox, ee_pos
 
-  def getObsTemporal(self, dones):
+  def getObsTemporal(self):
+      '''
+      Get the next temporal data from the planner for each environment.
+
+      Returns:
+        numpy.array: Actions
+      '''
+      for remote in self.remotes:
+        remote.send(('get_next_temporal', None))    
+      results = [remote.recv() for remote in self.remotes]
+      res = tuple(zip(*results))
+      state, global_obss, in_hands, ee_poss= res
+
+      states = np.stack(state)
+      global_obss = np.stack(global_obss)
+      in_hands = np.stack(in_hands)
+      ee_poss = np.stack(ee_poss)
+
+
+      return states, global_obss, in_hands, ee_poss
+  
+  def getObsTemporalBBox(self, dones):
       '''
       Get the next temporal data from the planner for each environment.
 
@@ -262,11 +343,12 @@ class MultiRunner(object):
         numpy.array: Actions
       '''
       for remote, done in zip(self.remotes, dones):
-        remote.send(('get_next_temporal', done))    
+        remote.send(('get_next_temporal_bbox', done))    
       results = [remote.recv() for remote in self.remotes]
       res = tuple(zip(*results))
-      global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss, sub_traj_masks, high_level_info= res
+      state, global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss, sub_traj_masks, high_level_info= res
 
+      states = np.stack(state)
       global_obss = np.stack(global_obss)
       in_hands = np.stack(in_hands)
       goal_bboxes = np.stack(goal_bboxes)
@@ -276,16 +358,40 @@ class MultiRunner(object):
       high_level_info = np.stack(high_level_info)
 
 
-      return global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss, sub_traj_masks, high_level_info
+      return states, global_obss, in_hands, goal_bboxes, all_bboxes, ee_poss, sub_traj_masks, high_level_info
 
   def getCurrentTimeStep(self):
     for remote in self.remotes:
         remote.send(('get_current_step', None))    
-
-    current_time_step = [remote.recv() for remote in self.remotes]
+    results = [remote.recv() for remote in self.remotes]
+    res = tuple(zip(*results))
+    student_traj_mask, student_time_steps = res
+    student_traj_mask = np.stack(student_traj_mask)
+    student_time_steps = np.stack(student_time_steps)
     # current_time_step = zip(*current_time_step)
 
-    return current_time_step
+    return student_traj_mask, student_time_steps
+  
+  def getHighLevelTraj(self):
+      '''
+      Get the next action from the planner for each environment.
+
+      Returns:
+        numpy.array: Actions
+      '''
+      for remote in self.remotes:
+        remote.send(('get_high_traj', None))  
+      results = [remote.recv() for remote in self.remotes]
+
+      res = tuple(zip(*results))
+      teacher_traj, mask, time_steps = res
+
+      teacher_traj = np.stack(teacher_traj)
+      mask = np.stack(mask)
+      time_steps = np.stack(time_steps)
+
+
+      return teacher_traj, mask, time_steps
 
   def reset(self):
     '''
@@ -392,6 +498,19 @@ class MultiRunner(object):
     action = [remote.recv() for remote in self.remotes]
     action = np.stack(action)
     return action
+  
+  def getNextTemporalAction(self, actions):
+    '''
+    Get the next action from the planner for each environment.
+
+    Returns:
+      numpy.array: Actions
+    '''
+    for remote, action in zip(self.remotes, actions):
+      remote.send(('get_next_temporal_action', action))
+    action_q = [remote.recv() for remote in self.remotes]
+    action_q = np.stack(action_q)
+    return action_q
 
   def getEmptyInHand(self):
     '''

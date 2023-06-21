@@ -42,26 +42,12 @@ class CloseLoopBlockStackingTR2Env(CloseLoopEnv):
         continue
       else:
         break
-    if self.num_obj == 1:
-      if self.goal_id is not None:
-        pb.removeBody(goal.goal_id)
-      rot = shape_handles[0].getRotation()
-      self.goal_pos.append(0.025)
-      goal = self._generateShapes(constants.VOID_GOAL, 1, pos=[self.goal_pos], rot=[rot])
-    else:
-      for i in range(self.num_obj-2):
-        pos = shape_handles[0].getPosition()
-        pos[2] += 0.1
-        rot = shape_handles[0].getRotation()
-        shape_handles = self._generateShapes(constants.CUBE, 1, pos=[pos], rot=[rot])
-      while True:
-        try:
-          shape_handles = self._generateShapes(constants.CUBE, 1, random_orientation=self.random_orientation)
-          # self.env_target_obj = shape_handles[0]
-        except NoValidPositionException as e:
-          continue
-        else:
-          break
+    if self.goal_id is not None:
+      pb.removeBody(goal.goal_id)
+    rot = shape_handles[0].getRotation()
+    self.goal_pos.append(0.025)
+    goal = self._generateShapes(constants.VOID_GOAL, 1, pos=[self.goal_pos], rot=[rot])
+    
     self.obj_poss=[]
     self.obj_rots=[]
     for obj in self.objects:
